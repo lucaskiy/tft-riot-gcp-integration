@@ -10,6 +10,7 @@ ingestion/.env.local
 dbt/tft_dbt/target/
 dbt/tft_dbt/dbt_packages/
 dbt/tft_dbt/logs/
+logs/
 
 # GCP credentials
 *.json
