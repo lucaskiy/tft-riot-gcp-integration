@@ -1,13 +1,17 @@
 version: 2
 
-models:
-  - name: stg_matches
-    description: "Staging — JSON bruto parseado em colunas tipadas"
-    columns:
-      - name: match_id
-        description: "ID único da partida"
-        tests: [not_null, unique]
-      - name: game_datetime
-        tests: [not_null]
-      - name: tft_set_number
-        tests: [not_null]
+sources:
+  - name: bronze
+    database: "tft-gcp-integration"
+    schema: tft_bronze
+    description: "Dados brutos vindos do GCS via External Table"
+    tables:
+      - name: raw_matches
+        description: "JSON completo de cada partida TFT — 1 linha por arquivo"
+        columns:
+          - name: metadata
+            description: "Bloco metadata da Riot API (match_id, participants puuids)"
+          - name: info
+            description: "Bloco info da Riot API (game_datetime, participants, traits, units)"
+          - name: date
+            description: "Partição Hive — data de ingestão"
