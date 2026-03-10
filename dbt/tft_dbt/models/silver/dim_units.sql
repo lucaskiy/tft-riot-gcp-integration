@@ -22,7 +22,7 @@ WITH units_exploded AS (
         top4,
         win,
         u
-    FROM {{ ref('silver_participants') }},
+    FROM {{ ref('fact_player_results') }},
     UNNEST(JSON_QUERY_ARRAY(units_json)) AS u
 )
 

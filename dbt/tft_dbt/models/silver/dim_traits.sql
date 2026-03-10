@@ -22,7 +22,7 @@ WITH traits_exploded AS (
         top4,
         win,
         t
-    FROM {{ ref('silver_participants') }},
+    FROM {{ ref('fact_player_results') }},
     UNNEST(JSON_QUERY_ARRAY(traits_json)) AS t
 )
 

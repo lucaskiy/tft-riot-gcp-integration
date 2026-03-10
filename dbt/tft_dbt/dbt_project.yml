@@ -32,14 +32,17 @@ clean-targets:         # directories to be removed by `dbt clean`
 models:
   tft_dbt:
     staging:
+      +database:     "tft-gcp-integration"
       +schema:       tft_staging
       +materialized: view
       +tags:         ["staging"]
     silver:
+      +database:     "tft-gcp-integration"
       +schema:       tft_silver
       +materialized: incremental
       +tags:         ["silver"]
     gold:
+      +database:     "tft-gcp-integration"
       +schema:       tft_gold
       +materialized: table
       +tags:         ["gold"]

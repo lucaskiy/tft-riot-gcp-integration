@@ -9,7 +9,7 @@
         materialized     = 'incremental',
         unique_key       = 'match_id',
         on_schema_change = 'sync_all_columns',
-        tags             = ['silver', 'daily', 'matches']
+        tags = ['silver', 'daily', 'matches']
     )
 }}
 

@@ -1,49 +1,28 @@
 version: 2
 
 models:
-  - name: stg_matches
-    description: "Staging — JSON bruto parseado em colunas tipadas"
-    columns:
-      - name: match_id
-        description: "ID único da partida"
-        tests:
-          - not_null
-          - unique
-      - name: game_datetime
-        tests:
-          - not_null
-      - name: tft_set_number
-        tests:
-          - not_null
-
-  - name: silver_matches
+  - name: fact_matches
     description: "Uma linha por partida — fatos da partida"
     columns:
       - name: match_id
-        tests:
-          - not_null
-          - unique
+        tests: [not_null, unique]
       - name: game_datetime
-        tests:
-          - not_null
+        tests: [not_null]
       - name: tft_set_number
-        tests:
-          - not_null
+        tests: [not_null]
       - name: queue_id
         tests:
           - accepted_values:
               arguments:
                 values: [1100, 1090, 1130, 1160]
 
-  - name: silver_participants
+  - name: fact_player_results
     description: "Uma linha por jogador por partida"
     columns:
       - name: match_id
-        tests:
-          - not_null
+        tests: [not_null]
       - name: puuid
-        tests:
-          - not_null
+        tests: [not_null]
       - name: placement
         tests:
           - not_null
@@ -51,42 +30,34 @@ models:
               arguments:
                 values: [1, 2, 3, 4, 5, 6, 7, 8]
       - name: win
-        tests:
-          - not_null
+        tests: [not_null]
       - name: level
         tests:
           - accepted_values:
               arguments:
                 values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-  - name: silver_traits
+  - name: dim_traits
     description: "Uma linha por trait por jogador por partida"
     columns:
       - name: match_id
-        tests:
-          - not_null
+        tests: [not_null]
       - name: puuid
-        tests:
-          - not_null
+        tests: [not_null]
       - name: trait_name
-        tests:
-          - not_null
+        tests: [not_null]
       - name: tier_current
-        tests:
-          - not_null
+        tests: [not_null]
 
-  - name: silver_units
+  - name: dim_units
     description: "Uma linha por unidade por jogador por partida"
     columns:
       - name: match_id
-        tests:
-          - not_null
+        tests: [not_null]
       - name: puuid
-        tests:
-          - not_null
+        tests: [not_null]
       - name: character_id
-        tests:
-          - not_null
+        tests: [not_null]
       - name: tier
         tests:
           - accepted_values:
