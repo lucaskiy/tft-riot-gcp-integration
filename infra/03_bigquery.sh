@@ -1,13 +1,14 @@
 #!/bin/bash
 # =============================================================================
-# 03_bigquery.sh — Criação dos datasets BigQuery (Silver e Gold)
+# 03_bigquery.sh — Criação dos datasets BigQuery
+# Responsabilidade: apenas datasets
+# Tabelas Silver e Gold são gerenciadas pelo dbt
 # Execução: bash infra/gcloud/03_bigquery.sh
 # =============================================================================
 
 set -e
 
 export PROJECT_ID="tft-gcp-integration"
-export REGION="us-central1"
 export BQ_LOCATION="US"
 
 echo "================================================="
@@ -15,10 +16,11 @@ echo " TFT Data Platform — BigQuery"
 echo "================================================="
 
 # -----------------------------------------------------------------------------
-# Datasets
+# Datasets — única responsabilidade deste script
+# As tabelas dentro de cada dataset são criadas pelo dbt
 # -----------------------------------------------------------------------------
 echo ""
-echo "[1/3] Criando datasets..."
+echo "[1/2] Criando datasets..."
 
 create_dataset() {
     local NAME=$1
@@ -37,73 +39,31 @@ create_dataset() {
 }
 
 create_dataset "tft_bronze"  "Dados brutos vindos do GCS Bronze via External Tables"
-create_dataset "tft_silver"  "Dados normalizados e limpos — modelos dbt Silver"
+create_dataset "tft_staging" "Staging — JSON parseado pelo dbt"
+create_dataset "tft_silver"  "Dados normalizados — modelos dbt Silver (fact/dim)"
 create_dataset "tft_gold"    "Agregações analíticas — modelos dbt Gold"
-create_dataset "tft_quality" "Resultados dos testes de qualidade de dados"
 
-echo "✅ Datasets verificados: tft_bronze, tft_silver, tft_gold, tft_quality"
+echo "✅ Datasets verificados"
 
 # -----------------------------------------------------------------------------
-# External Table — aponta para o GCS Bronze
-# Permite ao dbt ler os JSONs brutos direto do bucket
+# External Table — criada após a primeira ingestão
 # -----------------------------------------------------------------------------
 echo ""
-echo "[2/3] External Table ignorada — bucket ainda vazio"
+echo "[2/2] External Table..."
 echo "  ℹ️  Execute após a primeira ingestão:"
 echo "  bash infra/gcloud/create_external_table.sh"
-
-
-# -----------------------------------------------------------------------------
-# Tabelas Silver — criadas pelo dbt, mas definimos aqui para documentação
-# -----------------------------------------------------------------------------
-echo ""
-echo "[3/3] Criando tabelas Silver (esqueleto para documentação)..."
-
-bq mk \
-    --project_id=$PROJECT_ID \
-    --table \
-    --description="Uma linha por partida" \
-    tft_silver.fact_matches \
-    match_id:STRING,patch:STRING,game_datetime:TIMESTAMP,game_length:FLOAT,game_variation:STRING,ingested_at:TIMESTAMP
-
-bq mk \
-    --project_id=$PROJECT_ID \
-    --table \
-    --description="Resultado de cada jogador por partida" \
-    tft_silver.fact_player_results \
-    match_id:STRING,puuid:STRING,placement:INTEGER,level:INTEGER,last_round:INTEGER,total_damage_to_players:INTEGER,time_eliminated:FLOAT
-
-bq mk \
-    --project_id=$PROJECT_ID \
-    --table \
-    --description="Augments escolhidos por jogador" \
-    tft_silver.dim_augments \
-    match_id:STRING,puuid:STRING,slot:INTEGER,augment_id:STRING
-
-bq mk \
-    --project_id=$PROJECT_ID \
-    --table \
-    --description="Traits ativas por jogador na partida" \
-    tft_silver.dim_traits \
-    match_id:STRING,puuid:STRING,trait_id:STRING,num_units:INTEGER,tier_current:INTEGER,tier_total:INTEGER
-
-bq mk \
-    --project_id=$PROJECT_ID \
-    --table \
-    --description="Unidades usadas por jogador" \
-    tft_silver.dim_units \
-    match_id:STRING,puuid:STRING,character_id:STRING,tier:INTEGER,rarity:INTEGER
-
-echo "✅ Tabelas Silver criadas"
 
 echo ""
 echo "================================================="
 echo " BigQuery configurado:"
-echo "   tft_bronze  — External Tables (GCS)"
-echo "   tft_silver  — Modelos dbt normalizados"
-echo "   tft_gold    — Modelos dbt analíticos"
-echo "   tft_quality — Resultados de qualidade"
+echo "   tft_bronze  — External Table (GCS) — gerenciado por create_external_table.sh"
+echo "   tft_staging — Staging views        — gerenciado pelo dbt"
+echo "   tft_silver  — Tabelas fact/dim      — gerenciado pelo dbt"
+echo "   tft_gold    — Agregações analíticas — gerenciado pelo dbt"
 echo ""
-echo " Próximo passo:"
-echo " bash infra/gcloud/04_pubsub.sh"
+echo " Próximos passos:"
+echo "   1. bash infra/gcloud/04_pubsub.sh"
+echo "   2. bash infra/gcloud/05_functions.sh"
+echo "   3. bash infra/gcloud/create_external_table.sh  (após primeira ingestão)"
+echo "   4. cd dbt/tft_dbt && dbt run                   (cria tabelas Silver/Gold)"
 echo "================================================="
