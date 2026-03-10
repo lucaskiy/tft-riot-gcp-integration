@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: player_match_obt
+    description: >
+      One Big Table — base principal para o Looker Studio.
+      Uma linha por jogador por partida com arrays de units e traits.
+    columns:
+      - name: match_id
+        tests: [not_null]
+      - name: puuid
+        tests: [not_null]
+      - name: placement
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8]
+      - name: top4
+        tests: [not_null]
+
+  - name: unit_winrate
+    description: "Taxa de top4 e vitória por unidade e tier"
+    columns:
+      - name: character_id
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
+      - name: win_rate
+        tests: [not_null]
+
+  - name: trait_winrate
+    description: "Taxa de top4 e vitória por trait ativo e tier"
+    columns:
+      - name: trait_name
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
+
+  - name: item_winrate
+    description: "Taxa de top4 e vitória por item por unidade"
+    columns:
+      - name: item_name
+        tests: [not_null]
+      - name: character_id
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
+
+  - name: comp_winrate
+    description: >
+      Taxa de top4 e vitória por composição de units.
+      comp_key é a lista de character_ids ordenada alfabeticamente.
+    columns:
+      - name: comp_key
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
