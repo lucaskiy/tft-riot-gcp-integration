@@ -1,7 +1,8 @@
 -- =============================================================================
--- silver_matches.sql
--- Uma linha por partida — fatos da partida sem dados de jogadores
--- Incremental por match_id — só processa partidas novas
+-- dim_matches.sql
+-- Dimensão de partidas — fatos da partida sem dados de jogadores
+-- Fonte: stg_matches (já parseado da Bronze)
+-- Incremental por match_id
 -- =============================================================================
 
 {{
@@ -9,7 +10,7 @@
         materialized     = 'incremental',
         unique_key       = 'match_id',
         on_schema_change = 'sync_all_columns',
-        tags = ['silver', 'daily', 'matches']
+        tags             = ['silver', 'daily', 'matches']
     )
 }}
 
