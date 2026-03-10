@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+.env.local
+ingestion/.env.local
+
+# dbt
+dbt/tft_dbt/target/
+dbt/tft_dbt/dbt_packages/
+dbt/tft_dbt/logs/
+
+# GCP credentials
+*.json
+!ingestion/requirements.txt
+
+# Secrets
+*.key
