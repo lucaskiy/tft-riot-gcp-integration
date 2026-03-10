@@ -1,6 +1,7 @@
 -- =============================================================================
--- silver_traits.sql
--- Uma linha por trait ativo por jogador por partida
+-- dim_traits.sql
+-- Uma linha por trait por jogador por partida
+-- trait_name é a chave — ex: "TFT16_Bilgewater"
 -- =============================================================================
 
 {{
@@ -40,8 +41,6 @@ SELECT
     CAST(JSON_VALUE(t, '$.tier_current') AS INT64)      AS tier_current,
     CAST(JSON_VALUE(t, '$.tier_total') AS INT64)        AS tier_total,
     CAST(JSON_VALUE(t, '$.style') AS INT64)             AS style,
-
-    -- Trait ativo = tem pelo menos 1 tier
     CAST(JSON_VALUE(t, '$.tier_current') AS INT64) > 0  AS is_active,
 
     CURRENT_TIMESTAMP()                                 AS dbt_updated_at

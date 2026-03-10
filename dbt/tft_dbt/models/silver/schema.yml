@@ -1,8 +1,8 @@
 version: 2
 
 models:
-  - name: fact_matches
-    description: "Uma linha por partida — fatos da partida"
+  - name: dim_matches
+    description: "Dimensão de partidas — fatos da partida sem dados de jogadores"
     columns:
       - name: match_id
         tests: [not_null, unique]
@@ -17,7 +17,7 @@ models:
                 values: [1100, 1090, 1130, 1160]
 
   - name: fact_player_results
-    description: "Uma linha por jogador por partida"
+    description: "Uma linha por jogador por partida — resultado e arrays raw"
     columns:
       - name: match_id
         tests: [not_null]
