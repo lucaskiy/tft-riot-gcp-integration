@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: stg_matches
+    description: "Staging — JSON bruto parseado em colunas tipadas"
+    columns:
+      - name: match_id
+        description: "ID único da partida"
+        tests: [not_null, unique]
+      - name: game_datetime
+        tests: [not_null]
+      - name: tft_set_number
+        tests: [not_null]

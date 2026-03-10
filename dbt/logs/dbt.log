@@ -1,0 +1,70 @@
+[0m00:38:14.074399 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7c54a053b970>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7c549f3dd0f0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7c549f3dd090>]}
+
+
+============================== 00:38:14.087328 | 345750bc-1292-4f41-bfb2-665b6fe7aabb ==============================
+[0m00:38:14.087328 [info ] [MainThread]: Running with dbt=1.11.7
+[0m00:38:14.088431 [debug] [MainThread]: running dbt with arguments {'target_path': 'None', 'log_cache_events': 'False', 'log_path': 'logs', 'version_check': 'True', 'use_colors': 'True', 'partial_parse': 'True', 'introspect': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'invocation_command': 'dbt init tft_dbt', 'use_experimental_parser': 'False', 'printer_width': '80', 'send_anonymous_usage_stats': 'True', 'write_json': 'True', 'log_format': 'default', 'indirect_selection': 'eager', 'debug': 'False', 'warn_error': 'None', 'empty': 'None', 'no_print': 'None', 'cache_selected_only': 'False', 'quiet': 'False', 'fail_fast': 'False', 'profiles_dir': '/home/lucaskiy/.dbt', 'static_parser': 'True'}
+[0m00:38:14.413415 [debug] [MainThread]: Starter project path: /mnt/c/Users/lucaskiy/Documents/GitProjects/tft-riot-gcp-integration/venv/lib/python3.10/site-packages/dbt/include/starter_project
+[0m00:38:14.786884 [info ] [MainThread]: 
+Your new dbt project "tft_dbt" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m00:38:14.788162 [info ] [MainThread]: Setting up your profile.
+[0m00:39:00.654260 [info ] [MainThread]: Profile tft_dbt written to /home/lucaskiy/.dbt/profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m00:39:00.655976 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 46.645508, "process_in_blocks": "132352", "process_kernel_time": 2.010081, "process_mem_max_rss": "197116", "process_out_blocks": "8", "process_user_time": 3.388489}
+[0m00:39:00.657281 [debug] [MainThread]: Command `dbt init` succeeded at 00:39:00.657166 after 46.65 seconds
+[0m00:39:00.658182 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7c54a053b970>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7c549f3dd030>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7c549f3dd060>]}
+[0m00:39:00.659244 [debug] [MainThread]: Flushing usage events
+[0m00:39:01.361092 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m00:39:25.918342 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7a76a7dc7940>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7a76a6c550f0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7a76a6c55090>]}
+
+
+============================== 00:39:25.929613 | 7d552b4b-0d45-435b-a1c3-140fb8f625bc ==============================
+[0m00:39:25.929613 [info ] [MainThread]: Running with dbt=1.11.7
+[0m00:39:25.930849 [debug] [MainThread]: running dbt with arguments {'warn_error': 'None', 'cache_selected_only': 'False', 'empty': 'None', 'debug': 'False', 'send_anonymous_usage_stats': 'True', 'log_path': 'logs', 'fail_fast': 'False', 'static_parser': 'True', 'quiet': 'False', 'target_path': 'None', 'use_colors': 'True', 'partial_parse': 'True', 'profiles_dir': '/home/lucaskiy/.dbt', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'no_print': 'None', 'introspect': 'True', 'use_experimental_parser': 'False', 'version_check': 'True', 'write_json': 'True', 'printer_width': '80', 'invocation_command': 'dbt debug', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'log_format': 'default'}
+[0m00:39:26.171423 [info ] [MainThread]: dbt version: 1.11.7
+[0m00:39:26.172554 [info ] [MainThread]: python version: 3.10.12
+[0m00:39:26.173477 [info ] [MainThread]: python path: /mnt/c/Users/lucaskiy/Documents/GitProjects/tft-riot-gcp-integration/venv/bin/python3
+[0m00:39:26.174469 [info ] [MainThread]: os info: Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.35
+[0m00:39:26.182332 [info ] [MainThread]: Error importing adapter: No module named 'dbt.adapters.mysql'
+[0m00:39:37.517635 [info ] [MainThread]: Using profiles dir at /home/lucaskiy/.dbt
+[0m00:39:37.519118 [info ] [MainThread]: Using profiles.yml file at /home/lucaskiy/.dbt/profiles.yml
+[0m00:39:37.521203 [info ] [MainThread]: Using dbt_project.yml file at /mnt/c/Users/lucaskiy/Documents/GitProjects/tft-riot-gcp-integration/dbt/dbt_project.yml
+[0m00:39:37.522942 [info ] [MainThread]: Configuration:
+[0m00:39:37.524076 [info ] [MainThread]:   profiles.yml file [[31mERROR invalid[0m]
+[0m00:39:37.525174 [info ] [MainThread]:   dbt_project.yml file [[31mERROR not found[0m]
+[0m00:39:37.526367 [info ] [MainThread]: Required dependencies:
+[0m00:39:37.527410 [debug] [MainThread]: Executing "git --help"
+[0m00:39:37.531464 [debug] [MainThread]: STDOUT: "b"usage: git [--version] [--help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]\n           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n           [--super-prefix=<path>] [--config-env=<name>=<envvar>]\n           <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone     Clone a repository into a new directory\n   init      Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add       Add file contents to the index\n   mv        Move or rename a file, a directory, or a symlink\n   restore   Restore working tree files\n   rm        Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect    Use binary search to find the commit that introduced a bug\n   diff      Show changes between commits, commit and working tree, etc\n   grep      Print lines matching a pattern\n   log       Show commit logs\n   show      Show various types of objects\n   status    Show the working tree status\n\ngrow, mark and tweak your common history\n   branch    List, create, or delete branches\n   commit    Record changes to the repository\n   merge     Join two or more development histories together\n   rebase    Reapply commits on top of another base tip\n   reset     Reset current HEAD to the specified state\n   switch    Switch branches\n   tag       Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch     Download objects and refs from another repository\n   pull      Fetch from and integrate with another repository or a local branch\n   push      Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m00:39:37.532778 [debug] [MainThread]: STDERR: "b''"
+[0m00:39:37.533874 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m00:39:37.535014 [info ] [MainThread]: Connection test skipped since no profile was found
+[0m00:39:37.536320 [info ] [MainThread]: [31m2 checks failed:[0m
+[0m00:39:37.538328 [info ] [MainThread]: Could not load dbt_project.yml
+Profile loading failed for the following reason:
+Runtime Error
+  Credentials in profile "project", target "dev" invalid: Runtime Error
+    Could not find adapter type mysql!
+
+
+[0m00:39:37.539984 [info ] [MainThread]: Project loading failed for the following reason:
+ project path </mnt/c/Users/lucaskiy/Documents/GitProjects/tft-riot-gcp-integration/dbt/dbt_project.yml> not found
+
+[0m00:39:37.541618 [debug] [MainThread]: Resource report: {"command_name": "debug", "command_success": false, "command_wall_clock_time": 11.692365, "process_in_blocks": "127080", "process_kernel_time": 1.965344, "process_mem_max_rss": "198452", "process_out_blocks": "0", "process_user_time": 3.596871}
+[0m00:39:37.543680 [debug] [MainThread]: Command `dbt debug` failed at 00:39:37.543462 after 11.69 seconds
+[0m00:39:37.544830 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7a76a7dc7940>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7a76a6c55030>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7a76779f6440>]}
+[0m00:39:37.545871 [debug] [MainThread]: Flushing usage events
+[0m00:39:38.199988 [debug] [MainThread]: An error was encountered while trying to flush usage events
