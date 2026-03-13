@@ -1,6 +1,10 @@
 #!/bin/bash
 # =============================================================================
 # 04_pubsub.sh — Criação dos tópicos e subscriptions Pub/Sub
+# Tópicos:
+#   tft-match-ids          — match IDs para o match-fetcher
+#   tft-match-ids-dead-letter — DLQ do match-fetcher
+#   tft-pipeline-events    — evento do collector para triggar o dbt
 # Execução: bash infra/gcloud/04_pubsub.sh
 # =============================================================================
 
@@ -46,15 +50,19 @@ create_subscription() {
 # -----------------------------------------------------------------------------
 echo ""
 echo "[1/3] Criando tópicos..."
-create_topic "tft-match-ids" "--message-retention-duration=24h"
+create_topic "tft-match-ids"           "--message-retention-duration=24h"
 create_topic "tft-match-ids-dead-letter"
+create_topic "tft-pipeline-events"     "--message-retention-duration=1h"
 
 # -----------------------------------------------------------------------------
-# Subscription
+# Subscriptions
 # -----------------------------------------------------------------------------
 echo ""
-echo "[2/3] Criando subscription..."
+echo "[2/3] Criando subscriptions..."
 create_subscription "tft-match-fetcher-sub"
+
+# tft-pipeline-events → subscription criada pelo 05_functions.sh
+# após o deploy do Cloud Run Job (precisa da URL do job)
 
 # -----------------------------------------------------------------------------
 # Permissões
@@ -78,9 +86,10 @@ echo "✅ Permissões configuradas"
 echo ""
 echo "================================================="
 echo " Pub/Sub configurado:"
-echo "   tópico     : tft-match-ids"
-echo "   sub        : tft-match-fetcher-sub"
-echo "   dead letter: tft-match-ids-dead-letter"
+echo "   tft-match-ids           → match IDs para o fetcher"
+echo "   tft-match-ids-dead-letter → DLQ"
+echo "   tft-pipeline-events     → trigger do dbt runner"
+echo "   tft-match-fetcher-sub   → subscription do fetcher"
 echo ""
 echo " Próximo passo:"
 echo " bash infra/gcloud/05_functions.sh"
