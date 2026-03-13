@@ -233,34 +233,50 @@ def dlq_reprocessor(cloud_event):
         logger.critical(f"Erro ao decodificar mensagem DLQ: {e} — descartando")
         return
 
+    MAX_DLQ_ATTEMPTS = 2  # máximo de vezes que o DLQ tenta reprocessar
+
     requeued   = 0
     abandoned  = 0
 
     for match_id in match_ids:
-        doc = firestore_client.get_match_doc(match_id).get()
+        doc  = firestore_client.get_match_doc(match_id).get()
+        data = doc.to_dict() if doc.exists else {}
 
-        if doc.exists:
-            data    = doc.to_dict()
-            retries = data.get("retries", 0)
-            status  = data.get("status", "unknown")
+        status       = data.get("status", "unknown")
+        dlq_attempts = data.get("dlq_attempts", 0)
 
-            # Se já foi processado com sucesso entre o erro e agora, ignora
-            if status == "success":
-                logger.info(f"  ⏭️  {match_id} já processado com sucesso — ignorando")
-                continue
+        # Se já foi processado com sucesso, ignora
+        if status == "success":
+            logger.info(f"  ⏭️  {match_id} já processado com sucesso — ignorando")
+            continue
 
-            logger.warning(
-                f"  🔁 {match_id} | status: {status} | retries: {retries} "
-                f"| last_error: {data.get('last_error', 'N/A')[:100]}"
+        # Se já atingiu o limite de tentativas do DLQ, abandona definitivamente
+        if dlq_attempts >= MAX_DLQ_ATTEMPTS:
+            firestore_client.get_match_doc(match_id).set({
+                "status":     "abandoned",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "last_error": f"Abandonado após {dlq_attempts} tentativas de DLQ",
+            }, merge=True)
+            abandoned += 1
+            logger.critical(
+                f"  ❌ {match_id} abandonado definitivamente após "
+                f"{dlq_attempts} tentativas de DLQ"
             )
+            continue
 
-        # Reseta o contador de retries para dar mais uma chance
+        logger.warning(
+            f"  🔁 {match_id} | dlq_attempt: {dlq_attempts + 1}/{MAX_DLQ_ATTEMPTS} "
+            f"| last_error: {data.get('last_error', 'N/A')[:100]}"
+        )
+
+        # Reseta retries e incrementa dlq_attempts
         firestore_client.get_match_doc(match_id).set({
-            "match_id":   match_id,
-            "status":     "error",
-            "retries":    0,
-            "last_error": "Reprocessado via DLQ",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "match_id":     match_id,
+            "status":       "error",
+            "retries":      0,
+            "dlq_attempts": dlq_attempts + 1,
+            "last_error":   "Reprocessado via DLQ",
+            "updated_at":   datetime.now(timezone.utc).isoformat(),
         }, merge=True)
 
         requeued += 1
