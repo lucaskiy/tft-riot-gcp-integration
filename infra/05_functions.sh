@@ -155,7 +155,7 @@ SA_DBT="tft-dbt@$PROJECT_ID.iam.gserviceaccount.com"
 
 # Build e push da imagem Docker
 echo "  Building imagem Docker..."
-gcloud builds submit dbt_runner/     --project=$PROJECT_ID     --tag=$IMAGE
+gcloud builds submit dbt/     --project=$PROJECT_ID     --tag=$IMAGE
 
 # Cria ou atualiza o Cloud Run Job
 if gcloud run jobs describe tft-dbt-runner --region=$REGION --project=$PROJECT_ID &>/dev/null; then
