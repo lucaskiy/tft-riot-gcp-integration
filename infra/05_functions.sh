@@ -144,15 +144,55 @@ fi
 
 echo "✅ Scheduler configurado: a cada hora (America/Sao_Paulo)"
 
+# -----------------------------------------------------------------------------
+# dbt Runner — Cloud Run Job trigado pelo tft-pipeline-events
+# -----------------------------------------------------------------------------
+echo ""
+echo "[4/4] Deploy do dbt Runner..."
+
+IMAGE="gcr.io/$PROJECT_ID/tft-dbt-runner"
+SA_DBT="tft-dbt@$PROJECT_ID.iam.gserviceaccount.com"
+
+# Build e push da imagem Docker
+echo "  Building imagem Docker..."
+gcloud builds submit dbt_runner/     --project=$PROJECT_ID     --tag=$IMAGE
+
+# Cria ou atualiza o Cloud Run Job
+if gcloud run jobs describe tft-dbt-runner --region=$REGION --project=$PROJECT_ID &>/dev/null; then
+    echo "  ⚠️  Job já existe, atualizando..."
+    gcloud run jobs update tft-dbt-runner         --project=$PROJECT_ID         --region=$REGION         --image=$IMAGE         --service-account=$SA_DBT         --memory=1Gi         --cpu=1         --task-timeout=30m         --max-retries=1         --set-env-vars="PROJECT_ID=$PROJECT_ID"
+else
+    gcloud run jobs create tft-dbt-runner         --project=$PROJECT_ID         --region=$REGION         --image=$IMAGE         --service-account=$SA_DBT         --memory=1Gi         --cpu=1         --task-timeout=30m         --max-retries=1         --set-env-vars="PROJECT_ID=$PROJECT_ID"
+fi
+
+echo "  ✅ Cloud Run Job tft-dbt-runner configurado"
+
+# Subscription que trigga o Job quando o Collector publica em tft-pipeline-events
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+JOB_URL="https://$REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/tft-dbt-runner:run"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID     --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com"     --role="roles/run.invoker"
+
+if gcloud pubsub subscriptions describe tft-dbt-runner-sub --project=$PROJECT_ID &>/dev/null; then
+    echo "  ⚠️  Subscription tft-dbt-runner-sub já existe, ignorando"
+else
+    gcloud pubsub subscriptions create tft-dbt-runner-sub         --project=$PROJECT_ID         --topic=tft-pipeline-events         --push-endpoint=$JOB_URL         --push-auth-service-account=$SA_DBT         --ack-deadline=60         --expiration-period=never
+    echo "  ✅ Subscription tft-dbt-runner-sub criada"
+fi
+
+echo "✅ dbt Runner configurado"
+
 echo ""
 echo "================================================="
 echo " Deploy concluído:"
 echo "   tft-collector      → HTTP trigger (Scheduler)"
-echo "   tft-match-fetcher  → Pub/Sub trigger"
+echo "   tft-match-fetcher  → Pub/Sub (tft-match-ids)"
+echo "   tft-dbt-runner     → Pub/Sub (tft-pipeline-events)"
 echo "   Scheduler          → 0 * * * * (a cada hora)"
 echo ""
 echo " Testar manualmente:"
 echo " gcloud scheduler jobs run tft-collector-hourly --location=$REGION"
+echo " gcloud run jobs execute tft-dbt-runner --region=$REGION"
 echo ""
 echo " Ver logs:"
 echo " gcloud functions logs read tft-collector --region=$REGION --limit=50"
