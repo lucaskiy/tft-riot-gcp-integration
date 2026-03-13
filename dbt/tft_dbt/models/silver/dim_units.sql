@@ -35,7 +35,6 @@ SELECT
     placement,
     top4,
     win,
-    ingestion_date,
 
     JSON_VALUE(u, '$.character_id')                     AS character_id,
     CAST(JSON_VALUE(u, '$.tier') AS INT64)              AS tier,
@@ -52,7 +51,7 @@ SELECT
 FROM units_exploded
 
 {% if is_incremental() %}
-    WHERE ingestion_date >= (
-        SELECT MAX(ingestion_date) FROM {{ this }}
+    WHERE dbt_updated_at >= (
+        SELECT MAX(dbt_updated_at) FROM {{ this }}
     )
 {% endif %}
