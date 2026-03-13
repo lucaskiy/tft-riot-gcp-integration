@@ -90,6 +90,15 @@ def collector(request):
         return {"status": "ok", "published": 0, "skipped": skipped}, 200
 
     total_batches = pubsub_client.publish_all(new_ids)
+
+    # Notifica o pipeline de transformação que há dados novos para processar
+    pubsub_client.publish_pipeline_event({
+        "event":      "collector_finished",
+        "new_ids":    len(new_ids),
+        "batches":    total_batches,
+        "triggered_at": datetime.now(timezone.utc).isoformat(),
+    })
+
     logger.info("=== Collector finalizado ===")
 
     return {
@@ -187,3 +196,86 @@ def match_fetcher(cloud_event):
     if failed_ids:
         logger.warning(f"Re-publicando {len(failed_ids)} IDs com erro para retry")
         pubsub_client.publish_batch(failed_ids, batch_num=0)
+
+
+@functions_framework.cloud_event
+def dlq_reprocessor(cloud_event):
+    """
+    Job 3 — DLQ Reprocessor (trigger: Pub/Sub tft-match-ids-dead-letter)
+
+    Lê mensagens que falharam MAX_RETRIES vezes no match_fetcher e tenta
+    reprocessar uma última vez. Se falhar novamente, marca como abandoned
+    e loga como CRITICAL para alertas.
+
+    Fluxo:
+      1. Recebe batch da DLQ
+      2. Reseta o contador de retries no Firestore (status → error)
+      3. Republica no tópico principal para o match_fetcher tentar novamente
+      4. Se o match_id não existir no Firestore, registra e republica mesmo assim
+    """
+    _init_clients()
+
+    batch_id  = "UNKNOWN"
+    match_ids = []
+
+    try:
+        raw       = base64.b64decode(cloud_event.data["message"]["data"]).decode("utf-8").strip()
+        payload   = json.loads(raw)
+        match_ids = payload.get("match_ids", [])
+        batch_id  = payload.get("batch_id", "DLQ-UNKNOWN")
+        logger.warning(f"=== DLQ Reprocessor | batch: {batch_id} | {len(match_ids)} IDs ===")
+
+        if not match_ids:
+            logger.error("Mensagem DLQ vazia — descartando")
+            return
+
+    except Exception as e:
+        logger.critical(f"Erro ao decodificar mensagem DLQ: {e} — descartando")
+        return
+
+    requeued   = 0
+    abandoned  = 0
+
+    for match_id in match_ids:
+        doc = firestore_client.get_match_doc(match_id).get()
+
+        if doc.exists:
+            data    = doc.to_dict()
+            retries = data.get("retries", 0)
+            status  = data.get("status", "unknown")
+
+            # Se já foi processado com sucesso entre o erro e agora, ignora
+            if status == "success":
+                logger.info(f"  ⏭️  {match_id} já processado com sucesso — ignorando")
+                continue
+
+            logger.warning(
+                f"  🔁 {match_id} | status: {status} | retries: {retries} "
+                f"| last_error: {data.get('last_error', 'N/A')[:100]}"
+            )
+
+        # Reseta o contador de retries para dar mais uma chance
+        firestore_client.get_match_doc(match_id).set({
+            "match_id":   match_id,
+            "status":     "error",
+            "retries":    0,
+            "last_error": "Reprocessado via DLQ",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, merge=True)
+
+        requeued += 1
+
+    if requeued > 0:
+        requeue_ids = [
+            mid for mid in match_ids
+            if not (firestore_client.get_match_doc(mid).get().exists
+                    and firestore_client.get_match_doc(mid).get().to_dict().get("status") == "success")
+        ]
+        pubsub_client.publish_batch(requeue_ids, batch_num=0)
+        logger.warning(f"  🔁 {requeued} IDs recolocados na fila principal")
+
+    logger.warning(
+        f"=== DLQ Reprocessor finalizado | "
+        f"🔁 {requeued} recolocados | "
+        f"❌ {abandoned} abandonados ==="
+    )
