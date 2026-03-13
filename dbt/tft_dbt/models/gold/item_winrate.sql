@@ -26,6 +26,21 @@ WITH items_exploded AS (
     UNNEST(JSON_VALUE_ARRAY(u.item_names_json)) AS item_name
     WHERE u.item_names_json IS NOT NULL
       AND JSON_VALUE_ARRAY(u.item_names_json) IS NOT NULL
+),
+
+-- Deduplica — evita contar 2x o mesmo item quando há cópias do campeão
+deduped AS (
+    SELECT DISTINCT
+        match_id,
+        puuid,
+        character_id,
+        tier,
+        tft_set_number,
+        placement,
+        top4,
+        win,
+        item_name
+    FROM items_exploded
 )
 
 SELECT
@@ -40,7 +55,7 @@ SELECT
     ROUND(COUNTIF(win)  / COUNT(*) * 100, 2)        AS win_rate,
     ROUND(AVG(placement), 2)                        AS avg_placement
 
-FROM items_exploded
+FROM deduped
 GROUP BY tft_set_number, item_name, character_id
 HAVING COUNT(*) >= 10
 ORDER BY top4_rate DESC

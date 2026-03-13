@@ -34,7 +34,7 @@ SELECT
 FROM {{ ref('stg_matches') }}
 
 {% if is_incremental() %}
-    WHERE dbt_updated_at >= (
-        SELECT MAX(dbt_updated_at) FROM {{ this }}
+    WHERE ingestion_date >= (
+        SELECT MAX(ingestion_date) FROM {{ this }}
     )
 {% endif %}

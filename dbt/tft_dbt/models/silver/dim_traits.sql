@@ -44,12 +44,13 @@ SELECT
     CAST(JSON_VALUE(t, '$.style') AS INT64)             AS style,
     CAST(JSON_VALUE(t, '$.tier_current') AS INT64) > 0  AS is_active,
 
+    ingestion_date,
     CURRENT_TIMESTAMP()                                 AS dbt_updated_at
 
 FROM traits_exploded
 
 {% if is_incremental() %}
-    WHERE dbt_updated_at >= (
-        SELECT MAX(dbt_updated_at) FROM {{ this }}
+    WHERE ingestion_date >= (
+        SELECT MAX(ingestion_date) FROM {{ this }}
     )
 {% endif %}
