@@ -98,15 +98,23 @@ for role in roles/storage.objectAdmin roles/pubsub.publisher roles/secretmanager
         --role="$role"
 done
 
-# Match Fetcher: GCS + Pub/Sub + Secret Manager + Firestore
-for role in roles/storage.objectAdmin roles/pubsub.subscriber roles/secretmanager.secretAccessor roles/datastore.user; do
+# Match Fetcher: GCS + Pub/Sub (subscriber + publisher para retry) + Secret Manager + Firestore
+for role in roles/storage.objectAdmin roles/pubsub.subscriber roles/pubsub.publisher roles/secretmanager.secretAccessor roles/datastore.user; do
     gcloud projects add-iam-policy-binding $PROJECT_ID \
         --member="serviceAccount:$SA_FETCHER" \
         --role="$role"
 done
 
-# dbt: GCS + BigQuery
-for role in roles/storage.objectViewer roles/bigquery.dataEditor roles/bigquery.jobUser; do
+# dbt: GCS + BigQuery + Cloud Run (executar o Job) + Artifact Registry (pull da imagem)
+for role in \
+    roles/storage.objectViewer \
+    roles/bigquery.dataEditor \
+    roles/bigquery.jobUser \
+    roles/run.invoker \
+    roles/run.admin \
+    roles/artifactregistry.reader \
+    roles/eventarc.eventReceiver \
+    roles/iam.serviceAccountTokenCreator; do
     gcloud projects add-iam-policy-binding $PROJECT_ID \
         --member="serviceAccount:$SA_DBT" \
         --role="$role"
