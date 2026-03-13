@@ -21,6 +21,7 @@ WITH units_exploded AS (
         placement,
         top4,
         win,
+        ingestion_date,
         u
     FROM {{ ref('fact_player_results') }},
     UNNEST(JSON_QUERY_ARRAY(units_json)) AS u
@@ -50,5 +51,7 @@ SELECT
 FROM units_exploded
 
 {% if is_incremental() %}
-    WHERE match_id NOT IN (SELECT DISTINCT match_id FROM {{ this }})
+    WHERE ingestion_date >= (
+        SELECT MAX(ingestion_date) FROM {{ this }}
+    )
 {% endif %}

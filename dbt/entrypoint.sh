@@ -21,7 +21,7 @@ tft_dbt:
       project: ${PROJECT_ID}
       dataset: tft_staging
       location: US
-      threads: 4
+      threads: 1
       timeout_seconds: 300
 PROFILE
 
@@ -38,17 +38,18 @@ case "${RUN_MODE:-daily}" in
   daily)
     echo ""
     echo "[1/4] Rodando Staging (tag:daily)..."
-    dbt run --select tag:staging tag:daily --profiles-dir ~/.dbt $REFRESH_FLAG
+    dbt run --select tag:staging --profiles-dir ~/.dbt $REFRESH_FLAG
 
     echo ""
     echo "[2/4] Rodando Silver (tag:daily)..."
-    dbt run --select tag:silver tag:daily --profiles-dir ~/.dbt $REFRESH_FLAG
+    dbt run --select tag:silver --profiles-dir ~/.dbt $REFRESH_FLAG
     echo "      Testando Silver..."
     dbt test --select tag:silver --profiles-dir ~/.dbt
 
     echo ""
     echo "[3/4] Rodando Gold (tag:daily)..."
-    dbt run --select tag:gold tag:daily --profiles-dir ~/.dbt $REFRESH_FLAG
+    # Usa + para garantir que dependências Silver estejam atualizadas antes do Gold
+    dbt run --select +tag:gold --profiles-dir ~/.dbt $REFRESH_FLAG
     echo "      Testando Gold..."
     dbt test --select tag:gold --profiles-dir ~/.dbt
     ;;

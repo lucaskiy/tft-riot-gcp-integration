@@ -19,7 +19,7 @@ gcloud auth application-default login
 #       project: tft-gcp-integration
 #       dataset: tft_staging
 #       location: US
-#       threads: 4
+#       threads: 1
 #       timeout_seconds: 300
 
 # Testa a conexão

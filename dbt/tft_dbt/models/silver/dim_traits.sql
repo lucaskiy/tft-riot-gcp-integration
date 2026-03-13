@@ -1,18 +1,19 @@
 -- =============================================================================
--- silver_units.sql
--- Uma linha por unidade por jogador por partida
+-- dim_traits.sql
+-- Uma linha por trait por jogador por partida
+-- trait_name é a chave — ex: "TFT16_Bilgewater"
 -- =============================================================================
 
 {{
     config(
         materialized     = 'incremental',
-        unique_key       = ['match_id', 'puuid', 'character_id', 'rarity'],
+        unique_key       = ['match_id', 'puuid', 'trait_name'],
         on_schema_change = 'sync_all_columns',
-        tags             = ['silver', 'daily', 'units']
+        tags             = ['silver', 'daily', 'traits']
     )
 }}
 
-WITH units_exploded AS (
+WITH traits_exploded AS (
     SELECT
         match_id,
         puuid,
@@ -21,9 +22,10 @@ WITH units_exploded AS (
         placement,
         top4,
         win,
-        u
+        ingestion_date,
+        t
     FROM {{ ref('fact_player_results') }},
-    UNNEST(JSON_QUERY_ARRAY(units_json)) AS u
+    UNNEST(JSON_QUERY_ARRAY(traits_json)) AS t
 )
 
 SELECT
@@ -35,19 +37,16 @@ SELECT
     top4,
     win,
 
-    JSON_VALUE(u, '$.character_id')                     AS character_id,
-    CAST(JSON_VALUE(u, '$.tier') AS INT64)              AS tier,
-    CAST(JSON_VALUE(u, '$.rarity') AS INT64)            AS rarity,
-
-    -- Items equipados como array de strings
-    JSON_QUERY(u, '$.itemNames')                        AS item_names_json,
-
-    -- Quantidade de items
-    ARRAY_LENGTH(JSON_QUERY_ARRAY(u, '$.itemNames'))    AS item_count,
+    JSON_VALUE(t, '$.name')                             AS trait_name,
+    CAST(JSON_VALUE(t, '$.num_units') AS INT64)         AS num_units,
+    CAST(JSON_VALUE(t, '$.tier_current') AS INT64)      AS tier_current,
+    CAST(JSON_VALUE(t, '$.tier_total') AS INT64)        AS tier_total,
+    CAST(JSON_VALUE(t, '$.style') AS INT64)             AS style,
+    CAST(JSON_VALUE(t, '$.tier_current') AS INT64) > 0  AS is_active,
 
     CURRENT_TIMESTAMP()                                 AS dbt_updated_at
 
-FROM units_exploded
+FROM traits_exploded
 
 {% if is_incremental() %}
     WHERE ingestion_date >= (
