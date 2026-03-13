@@ -63,5 +63,7 @@ parsed AS (
 SELECT * FROM parsed
 
 {% if is_incremental() %}
-    WHERE match_id NOT IN (SELECT DISTINCT match_id FROM {{ this }})
+    WHERE ingestion_date >= (
+        SELECT MAX(ingestion_date) FROM {{ this }}
+    )
 {% endif %}

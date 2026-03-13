@@ -197,7 +197,7 @@ if gcloud run jobs describe tft-dbt-runner --region=$REGION --project=$PROJECT_I
     echo "  ⚠️  Job já existe, atualizando..."
     gcloud run jobs update tft-dbt-runner         --project=$PROJECT_ID         --region=$REGION         --image=$IMAGE         --service-account=$SA_DBT         --memory=1Gi         --cpu=1         --task-timeout=30m         --max-retries=1         --set-env-vars="PROJECT_ID=$PROJECT_ID"
 else
-    gcloud run jobs create tft-dbt-runner         --project=$PROJECT_ID         --region=$REGION         --image=$IMAGE         --service-account=$SA_DBT         --memory=1Gi         --cpu=1         --task-timeout=30m         --max-retries=1         --set-env-vars="PROJECT_ID=$PROJECT_ID"
+    gcloud run jobs create tft-dbt-runner         --project=$PROJECT_ID         --region=$REGION         --image=$IMAGE         --service-account=$SA_DBT         --memory=1Gi         --cpu=1         --task-timeout=30m         --max-retries=1         --set-env-vars="PROJECT_ID=$PROJECT_ID,RUN_MODE=daily,FULL_REFRESH=false"
 fi
 
 echo "  ✅ Cloud Run Job tft-dbt-runner configurado"

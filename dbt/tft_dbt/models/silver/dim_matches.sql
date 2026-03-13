@@ -33,5 +33,7 @@ SELECT
 FROM {{ ref('stg_matches') }}
 
 {% if is_incremental() %}
-    WHERE match_id NOT IN (SELECT match_id FROM {{ this }})
+    WHERE ingestion_date >= (
+        SELECT MAX(ingestion_date) FROM {{ this }}
+    )
 {% endif %}
