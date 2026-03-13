@@ -36,6 +36,7 @@ SELECT
     placement,
     top4,
     win,
+    ingestion_date,
 
     JSON_VALUE(t, '$.name')                             AS trait_name,
     CAST(JSON_VALUE(t, '$.num_units') AS INT64)         AS num_units,

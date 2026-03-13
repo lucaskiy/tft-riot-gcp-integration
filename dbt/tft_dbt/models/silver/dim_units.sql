@@ -35,6 +35,7 @@ SELECT
     placement,
     top4,
     win,
+    ingestion_date,
 
     JSON_VALUE(u, '$.character_id')                     AS character_id,
     CAST(JSON_VALUE(u, '$.tier') AS INT64)              AS tier,

@@ -9,6 +9,7 @@
         materialized     = 'incremental',
         unique_key       = ['match_id', 'puuid'],
         on_schema_change = 'sync_all_columns',
+        partition_by     = {'field': 'ingestion_date', 'data_type': 'date'},
         tags             = ['silver', 'daily', 'participants']
     )
 }}

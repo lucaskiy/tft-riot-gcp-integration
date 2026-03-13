@@ -4,19 +4,20 @@
 -- View — sem custo de armazenamento, atualiza automaticamente
 -- =============================================================================
 
+{{
+    config(
+        materialized = 'view',
+        tags         = ['staging', 'daily']
+    )
+}}
+
 WITH raw AS (
     SELECT
         metadata,
         info,
-        date                                                        AS ingestion_date,
-        _FILE_NAME                                                  AS source_file
-    FROM {{
-    config(
-        tags=['staging', 'daily', 'bronze_to_staging']
-    )
-}}
-
-{{ source('bronze', 'raw_matches') }}
+        date        AS ingestion_date,
+        _FILE_NAME  AS source_file
+    FROM {{ source('bronze', 'raw_matches') }}
 )
 
 SELECT

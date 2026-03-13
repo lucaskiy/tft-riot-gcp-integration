@@ -46,8 +46,50 @@ models:
     description: >
       Taxa de top4 e vitória por composição de units.
       comp_key é a lista de character_ids ordenada alfabeticamente.
+      Inclui game_version (patch), avg_level e primary_trait da composição.
     columns:
       - name: comp_key
         tests: [not_null]
       - name: top4_rate
+        tests: [not_null]
+      - name: game_version
+      - name: primary_trait
+      - name: avg_level
+
+  - name: item_combo_winrate
+    description: >
+      Melhor combinação completa de itens por unidade (BiS — Best in Slot).
+      item_combo é a lista de itens ordenada alfabeticamente com ' + ' como separador.
+      Responde: "qual build de itens tem maior top4 rate no Syndra?"
+    columns:
+      - name: character_id
+        tests: [not_null]
+      - name: item_combo
+        tests: [not_null]
+      - name: item_combo_size
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
+      - name: win_rate
+        tests: [not_null]
+
+  - name: trait_comp_winrate
+    description: "Winrate por combinação de traits ativas — permite analisar quais sinergias de traits têm melhor desempenho"
+    columns:
+      - name: tft_set_number
+        tests: [not_null]
+      - name: trait_comp_key
+        description: "Combinação completa de traits ativas ex: '4 Colosso | 5 Ionia | 2 Brutamontes'"
+        tests: [not_null]
+      - name: dominant_traits_key
+        description: "Apenas traits com num_units >= 4"
+      - name: active_trait_count
+        tests: [not_null]
+      - name: total_games
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
+      - name: win_rate
+        tests: [not_null]
+      - name: avg_placement
         tests: [not_null]
