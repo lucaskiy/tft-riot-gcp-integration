@@ -25,6 +25,15 @@ def _topic_path() -> str:
     return _publisher.topic_path(_project_id, _topic)
 
 
+def publish_pipeline_event(payload: dict):
+    """Publica evento no tópico tft-pipeline-events para triggar o dbt."""
+    topic_path = _publisher.topic_path(_project_id, "tft-pipeline-events")
+    message    = json.dumps(payload).encode("utf-8")
+    future     = _publisher.publish(topic_path, message)
+    future.result()
+    logger.info(f"Evento publicado em tft-pipeline-events: {payload.get('event')}")
+
+
 def publish_batch(match_ids: list[str], batch_num: int):
     """Publica um batch de match IDs como uma única mensagem."""
     payload = json.dumps({

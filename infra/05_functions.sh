@@ -75,6 +75,41 @@ gcloud functions deploy tft-match-fetcher \
 
 echo "✅ Função tft-match-fetcher deployada"
 
+# -----------------------------------------------------------------------------
+# Function 3: tft-dlq-reprocessor
+# Trigger: Pub/Sub (tft-match-ids-dead-letter)
+# Responsabilidade: retenta matches que falharam MAX_RETRIES vezes
+# -----------------------------------------------------------------------------
+echo ""
+echo "[2b/4] Deploy da função tft-dlq-reprocessor..."
+gcloud functions deploy tft-dlq-reprocessor \
+    --project=$PROJECT_ID \
+    --region=$REGION \
+    --gen2 \
+    --runtime=python311 \
+    --source=ingestion/ \
+    --entry-point=dlq_reprocessor \
+    --trigger-topic=tft-match-ids-dead-letter \
+    --service-account=$SA_FETCHER \
+    --memory=256MB \
+    --timeout=120s \
+    --max-instances=3 \
+    --set-env-vars="PROJECT_ID=$PROJECT_ID,MASS_REGION=americas,BRONZE_BUCKET=tft-bronze-$PROJECT_ID" \
+    --set-secrets="RIOT_API_KEY=riot-api-key:latest"
+
+# Permissão run.invoker para o reprocessor
+gcloud run services add-iam-policy-binding tft-dlq-reprocessor \
+    --project=$PROJECT_ID \
+    --region=$REGION \
+    --member="serviceAccount:$SA_FETCHER" \
+    --role="roles/run.invoker"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SA_FETCHER" \
+    --role="roles/eventarc.eventReceiver"
+
+echo "✅ Função tft-dlq-reprocessor deployada"
+
 # Permissões para o match-fetcher ser invocado pelo Eventarc
 PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 

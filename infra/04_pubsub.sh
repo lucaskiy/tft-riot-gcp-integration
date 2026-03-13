@@ -64,6 +64,22 @@ create_subscription "tft-match-fetcher-sub"
 # tft-pipeline-events → subscription criada pelo 05_functions.sh
 # após o deploy do Cloud Run Job (precisa da URL do job)
 
+# DLQ monitor — permite inspecionar mensagens que falharam manualmente
+if gcloud pubsub subscriptions describe tft-dlq-monitor-sub --project=$PROJECT_ID &>/dev/null; then
+    echo "  ⚠️  tft-dlq-monitor-sub já existe, ignorando"
+else
+    gcloud pubsub subscriptions create tft-dlq-monitor-sub \
+        --project=$PROJECT_ID \
+        --topic=tft-match-ids-dead-letter \
+        --ack-deadline=60 \
+        --expiration-period=never \
+        --message-retention-duration=7d
+    echo "  ✅ tft-dlq-monitor-sub criada"
+fi
+
+# DLQ reprocessor — subscription da Cloud Function que retenta automaticamente
+# (a subscription em si é criada pelo Eventarc no 05_functions.sh via --trigger-topic)
+
 # -----------------------------------------------------------------------------
 # Permissões
 # -----------------------------------------------------------------------------
@@ -86,10 +102,11 @@ echo "✅ Permissões configuradas"
 echo ""
 echo "================================================="
 echo " Pub/Sub configurado:"
-echo "   tft-match-ids           → match IDs para o fetcher"
+echo "   tft-match-ids             → match IDs para o fetcher"
 echo "   tft-match-ids-dead-letter → DLQ"
-echo "   tft-pipeline-events     → trigger do dbt runner"
-echo "   tft-match-fetcher-sub   → subscription do fetcher"
+echo "   tft-pipeline-events       → trigger do dbt runner"
+echo "   tft-match-fetcher-sub     → subscription do fetcher"
+echo "   tft-dlq-monitor-sub       → monitoramento manual da DLQ"
 echo ""
 echo " Próximo passo:"
 echo " bash infra/gcloud/05_functions.sh"
