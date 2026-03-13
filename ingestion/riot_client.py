@@ -55,7 +55,7 @@ def get_puuids_by_tier(match_count: int, hours_back: int) -> list[str]:
     tiers = {
         "challenger":  f"https://{_riot_region}.api.riotgames.com/tft/league/v1/challenger",
         "grandmaster": f"https://{_riot_region}.api.riotgames.com/tft/league/v1/grandmaster",
-        # "master":      f"https://{_riot_region}.api.riotgames.com/tft/league/v1/master",
+        "master":      f"https://{_riot_region}.api.riotgames.com/tft/league/v1/master",
     }
 
     all_puuids = []
