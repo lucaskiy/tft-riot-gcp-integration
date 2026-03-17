@@ -22,18 +22,29 @@ def _headers() -> dict:
     return {"X-Riot-Token": _api_key}
 
 
-def _get(url: str, params: dict = None) -> dict | list | None:
-    """GET com retry automático em rate limit."""
-    response = requests.get(url, headers=_headers(), params=params, timeout=10)
+def _get(url: str, params: dict = None, _retry: int = 0) -> dict | list | None:
+    """GET com retry automático em rate limit e erros de conexão."""
+    MAX_RETRIES = 3
+
+    try:
+        response = requests.get(url, headers=_headers(), params=params, timeout=30)
+    except Exception as e:
+        if _retry < MAX_RETRIES:
+            wait = 2 ** _retry  # backoff: 1s, 2s, 4s
+            logger.warning(f"Erro de conexão ({e.__class__.__name__}) — retry {_retry + 1}/{MAX_RETRIES} em {wait}s")
+            time.sleep(wait)
+            return _get(url, params, _retry + 1)
+        logger.error(f"Falha após {MAX_RETRIES} tentativas em {url}: {e}")
+        return None
 
     if response.status_code == 200:
         return response.json()
 
     if response.status_code == 429:
-        retry_after = int(response.headers.get("Retry-After", 5))
+        retry_after = int(response.headers.get("Retry-After", 10))
         logger.warning(f"Rate limit atingido. Aguardando {retry_after}s...")
         time.sleep(retry_after + 1)
-        return _get(url, params)
+        return _get(url, params, _retry + 1)
 
     if response.status_code == 404:
         return None
@@ -48,25 +59,71 @@ def _get(url: str, params: dict = None) -> dict | list | None:
     return None
 
 
+def _get_diamond_puuids(limit: int = 200) -> list[str]:
+    """Retorna PUUIDs do Diamante I paginando até atingir o limite."""
+    puuids = []
+    page   = 1
+
+    while len(puuids) < limit:
+        url  = f"https://{_riot_region}.api.riotgames.com/tft/league/v1/entries/DIAMOND/I"
+        data = _get(url, params={"page": page})
+
+        if not data:
+            break
+
+        page_puuids = [e["puuid"] for e in data if e.get("puuid")]
+        if not page_puuids:
+            break
+
+        puuids.extend(page_puuids)
+        logger.info(f"Diamond I página {page}: {len(page_puuids)} jogadores | total: {len(puuids)}")
+
+        if len(data) < 205:
+            # Última página — menos de 205 entradas significa fim da lista
+            break
+
+        page += 1
+        time.sleep(1.5)
+
+    unique = list(dict.fromkeys(puuids))[:limit]
+    logger.info(f"Diamond I: {len(unique)} jogadores selecionados")
+    return unique
+
+
 def get_puuids_by_tier(match_count: int, hours_back: int) -> list[str]:
-    """Retorna todos os PUUIDs do Challenger, Grandmaster e Master."""
-    from datetime import datetime, timezone, timedelta
+    """Retorna PUUIDs do Challenger, Grandmaster, Master e Diamante I."""
 
     tiers = {
-        "challenger":  f"https://{_riot_region}.api.riotgames.com/tft/league/v1/challenger",
-        "grandmaster": f"https://{_riot_region}.api.riotgames.com/tft/league/v1/grandmaster",
+        # "challenger":  f"https://{_riot_region}.api.riotgames.com/tft/league/v1/challenger",
+        # "grandmaster": f"https://{_riot_region}.api.riotgames.com/tft/league/v1/grandmaster",
         "master":      f"https://{_riot_region}.api.riotgames.com/tft/league/v1/master",
     }
 
+    # Limites por tier para controlar volume de chamadas à API
+    TIER_LIMITS = {
+        "challenger":  200,
+        "grandmaster": 200,
+        "master":      200,
+    }
+
     all_puuids = []
+
+    # Challenger, Grandmaster, Master
     for tier, url in tiers.items():
         data = _get(url)
         if not data:
             logger.warning(f"{tier}: nenhum dado retornado")
             continue
-        puuids = [e["puuid"] for e in data.get("entries", []) if e.get("puuid")]
-        logger.info(f"{tier.capitalize()}: {len(puuids)} jogadores encontrados")
+        entries = data.get("entries", [])
+        entries.sort(key=lambda e: e.get("leaguePoints", 0), reverse=True)
+        limit  = TIER_LIMITS.get(tier, 200)
+        puuids = [e["puuid"] for e in entries[:limit] if e.get("puuid")]
+        logger.info(f"{tier.capitalize()}: {len(entries)} total → usando top {len(puuids)}")
         all_puuids.extend(puuids)
+
+    # Diamante I — paginado
+    diamond_puuids = _get_diamond_puuids(limit=200)
+    all_puuids.extend(diamond_puuids)
 
     unique = list(dict.fromkeys(all_puuids))
     logger.info(f"Total único: {len(unique)} jogadores")
