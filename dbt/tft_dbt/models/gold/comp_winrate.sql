@@ -60,7 +60,7 @@ primary_trait_per_player AS (
 
 SELECT
     c.tft_set_number,
-    m.game_version,
+    m.patch,
     c.units_key,
     COALESCE(t.traits_key, 'unknown')                               AS traits_key,
     CONCAT(c.units_key, ' || ', COALESCE(t.traits_key, ''))         AS comp_full_key,
@@ -74,7 +74,15 @@ SELECT
     ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2)      AS top4_rate,
     ROUND(COUNTIF(c.win)  / COUNT(*) * 100, 2)      AS win_rate,
     ROUND(AVG(c.placement), 2)                      AS avg_placement,
-    ROUND(AVG(p.level), 2)                          AS avg_level
+    ROUND(AVG(p.level), 2)                          AS avg_level,
+
+    -- Tier da composição baseado no win rate
+    CASE
+        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
+        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
+        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
+        ELSE 'C'
+    END                                             AS tier
 
 FROM comp_per_player                               c
 LEFT JOIN {{ ref('dim_matches') }}             m   ON c.match_id = m.match_id
@@ -86,7 +94,7 @@ LEFT JOIN primary_trait_per_player             pt  ON c.match_id = pt.match_id
                                                   AND c.puuid   = pt.puuid
 GROUP BY
     c.tft_set_number,
-    m.game_version,
+    m.patch,
     c.units_key,
     t.traits_key,
     c.comp_size,

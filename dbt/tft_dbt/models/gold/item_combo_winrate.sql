@@ -57,7 +57,14 @@ SELECT
     COUNTIF(win)                                    AS total_wins,
     ROUND(COUNTIF(top4) / COUNT(*) * 100, 2)        AS top4_rate,
     ROUND(COUNTIF(win)  / COUNT(*) * 100, 2)        AS win_rate,
-    ROUND(AVG(placement), 2)                        AS avg_placement
+    ROUND(AVG(placement), 2)                        AS avg_placement,
+    
+    CASE
+        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
+        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
+        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
+        ELSE 'C'
+    END                                             AS tier 
 
 FROM combo_per_unit
 GROUP BY tft_set_number, character_id, item_combo, item_combo_size

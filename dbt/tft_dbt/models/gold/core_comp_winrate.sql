@@ -72,7 +72,13 @@ SELECT
     COUNTIF(c.win)                                  AS total_wins,
     ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2)      AS top4_rate,
     ROUND(COUNTIF(c.win)  / COUNT(*) * 100, 2)      AS win_rate,
-    ROUND(AVG(c.placement), 2)                      AS avg_placement
+    ROUND(AVG(c.placement), 2)                      AS avg_placement,
+    CASE
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
+        ELSE 'C'
+    END                                              AS tier
 
 FROM core_units                 c
 LEFT JOIN primary_trait         pt ON c.match_id = pt.match_id
