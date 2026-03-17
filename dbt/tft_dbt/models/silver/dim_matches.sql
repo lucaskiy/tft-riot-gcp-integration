@@ -22,6 +22,7 @@ SELECT
     game_datetime,
     ROUND(game_length_seconds / 60, 2)  AS game_length_minutes,
     game_version,
+    REGEXP_EXTRACT(game_version, r'16\.\d+\.\d+') AS patch,
     queue_id,
     tft_set_core_name,
     tft_set_number,
