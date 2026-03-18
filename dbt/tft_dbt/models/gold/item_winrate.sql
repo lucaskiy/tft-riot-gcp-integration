@@ -46,7 +46,9 @@ deduped AS (
 SELECT
     tft_set_number,
     item_name,
+    REGEXP_REPLACE(item_name, r'^(?i)tft\d+_item_|^(?i)tft\d+_', '')             AS item_display_name,
     character_id,
+    REGEXP_REPLACE(character_id, r'^(?i)tft\d+_', '')                              AS character_name,
 
     COUNT(*)                                        AS total_games,
     COUNTIF(top4)                                   AS total_top4,
@@ -59,7 +61,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier_winrate
+    END                                                 AS performance_tier
 
 FROM deduped
 GROUP BY tft_set_number, item_name, character_id

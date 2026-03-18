@@ -64,21 +64,17 @@ primary_trait AS (
 SELECT
     c.tft_set_number,
     c.core_key,
+    REGEXP_REPLACE(c.core_key, r'(?i)tft\d+_', '')                                AS core_key_display,
     c.core_size,
     pt.primary_trait,
+    REGEXP_REPLACE(pt.primary_trait, r'^(?i)tft\d+_', '')                          AS primary_trait_display,
 
     COUNT(*)                                        AS total_games,
     COUNTIF(c.top4)                                 AS total_top4,
     COUNTIF(c.win)                                  AS total_wins,
     ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2)      AS top4_rate,
     ROUND(COUNTIF(c.win)  / COUNT(*) * 100, 2)      AS win_rate,
-    ROUND(AVG(c.placement), 2)                      AS avg_placement,
-    CASE
-        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
-        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
-        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
-        ELSE 'C'
-    END                                              AS tier_winrate
+    ROUND(AVG(c.placement), 2)                      AS avg_placement
 
 FROM core_units                 c
 LEFT JOIN primary_trait         pt ON c.match_id = pt.match_id

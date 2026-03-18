@@ -67,6 +67,7 @@ SELECT
     c.comp_size,
     COALESCE(t.active_trait_count, 0)                               AS active_trait_count,
     pt.primary_trait,
+    REGEXP_REPLACE(pt.primary_trait, r'^(?i)tft\d+_', '')                          AS primary_trait_display,
 
     COUNT(*)                                        AS total_games,
     COUNTIF(c.top4)                                 AS total_top4,
@@ -82,7 +83,7 @@ SELECT
         WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier_winrate
+    END                                                 AS tier
 
 FROM comp_per_player                               c
 LEFT JOIN {{ ref('dim_matches') }}             m   ON c.match_id = m.match_id
