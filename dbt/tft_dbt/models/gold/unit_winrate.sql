@@ -44,7 +44,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier
+    END                                             AS tier_winrate
 
 FROM deduped
 GROUP BY tft_set_number, character_id, tier, rarity

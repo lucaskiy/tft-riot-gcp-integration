@@ -58,7 +58,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier
+    END                                             AS tier_winrate
 
 FROM traits_per_player
 GROUP BY tft_set_number, trait_comp_key, dominant_traits_key, active_trait_count

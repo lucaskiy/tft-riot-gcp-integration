@@ -78,11 +78,11 @@ SELECT
 
     -- Tier da composição baseado no win rate
     CASE
-        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
-        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
-        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier
+    END                                             AS tier_winrate
 
 FROM comp_per_player                               c
 LEFT JOIN {{ ref('dim_matches') }}             m   ON c.match_id = m.match_id

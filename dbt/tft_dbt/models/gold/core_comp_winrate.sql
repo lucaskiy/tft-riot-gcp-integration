@@ -78,7 +78,7 @@ SELECT
         WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                              AS tier
+    END                                              AS tier_winrate
 
 FROM core_units                 c
 LEFT JOIN primary_trait         pt ON c.match_id = pt.match_id

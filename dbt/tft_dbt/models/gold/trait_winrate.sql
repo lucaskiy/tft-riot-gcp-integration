@@ -28,7 +28,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier,
+    END                                             AS tier_winrate,
     ROUND(AVG(num_units), 2)                        AS avg_units_in_trait
 
 FROM {{ ref('dim_traits') }}

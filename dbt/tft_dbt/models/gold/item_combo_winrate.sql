@@ -64,7 +64,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                             AS tier 
+    END                                             AS tier_winrate 
 
 FROM combo_per_unit
 GROUP BY tft_set_number, character_id, item_combo, item_combo_size
