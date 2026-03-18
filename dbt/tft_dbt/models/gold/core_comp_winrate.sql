@@ -13,8 +13,6 @@
 }}
 
 WITH units_ranked AS (
-    -- Ranqueia unidades por custo dentro de cada jogador/partida
-    -- unidades mais caras = core da composição
     SELECT
         match_id,
         puuid,
@@ -31,7 +29,6 @@ WITH units_ranked AS (
     FROM {{ ref('dim_units') }}
 ),
 
--- Pega as top 6 unidades por custo = core da composição
 core_units AS (
     SELECT
         match_id,
@@ -40,14 +37,27 @@ core_units AS (
         placement,
         top4,
         win,
-        STRING_AGG(character_id, ' | ' ORDER BY character_id) AS core_key,
-        COUNT(DISTINCT character_id)                           AS core_size
+        STRING_AGG(character_id, ' | ' ORDER BY character_id)   AS core_key,
+        -- Display sem prefixo
+        STRING_AGG(
+            REGEXP_REPLACE(character_id, r'(?i)tft\d+_', ''),
+            ' | ' ORDER BY character_id
+        )                                                        AS core_key_display,
+        -- URLs dos ícones de cada unit do core separadas por " | "
+        STRING_AGG(
+            CONCAT(
+                'https://storage.googleapis.com/tft-assets-tft-gcp-integration/champions/',
+                LOWER(character_id),
+                '.png'
+            ),
+            ' | ' ORDER BY character_id
+        )                                                        AS core_icon_urls,
+        COUNT(DISTINCT character_id)                             AS core_size
     FROM units_ranked
     WHERE unit_rank <= 6
     GROUP BY match_id, puuid, tft_set_number, placement, top4, win
 ),
 
--- Trait principal da composição
 primary_trait AS (
     SELECT
         match_id,
@@ -64,21 +74,45 @@ primary_trait AS (
 SELECT
     c.tft_set_number,
     c.core_key,
-    REGEXP_REPLACE(c.core_key, r'(?i)tft\d+_', '')                                AS core_key_display,
+    c.core_key_display,
+    c.core_icon_urls,
+
+    -- URLs individuais para cada slot do core (até 6 units)
+    SPLIT(c.core_icon_urls, ' | ')[OFFSET(0)]                                       AS unit_icon_1,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 1
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(1)] END                          AS unit_icon_2,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 2
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(2)] END                          AS unit_icon_3,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 3
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(3)] END                          AS unit_icon_4,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 4
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(4)] END                          AS unit_icon_5,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 5
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(5)] END                          AS unit_icon_6,
+
     c.core_size,
     pt.primary_trait,
-    REGEXP_REPLACE(pt.primary_trait, r'^(?i)tft\d+_', '')                          AS primary_trait_display,
+    REGEXP_REPLACE(pt.primary_trait, r'^(?i)tft\d+_', '')                           AS primary_trait_display,
 
     COUNT(*)                                        AS total_games,
     COUNTIF(c.top4)                                 AS total_top4,
     COUNTIF(c.win)                                  AS total_wins,
     ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2)      AS top4_rate,
     ROUND(COUNTIF(c.win)  / COUNT(*) * 100, 2)      AS win_rate,
-    ROUND(AVG(c.placement), 2)                      AS avg_placement
+    ROUND(AVG(c.placement), 2)                      AS avg_placement,
+
+    CASE
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 75 THEN 'S'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
+        ELSE 'C'
+    END                                                                              AS tier_winrate
 
 FROM core_units                 c
 LEFT JOIN primary_trait         pt ON c.match_id = pt.match_id
                                    AND c.puuid   = pt.puuid
-GROUP BY c.tft_set_number, c.core_key, c.core_size, pt.primary_trait
+GROUP BY
+    c.tft_set_number, c.core_key, c.core_key_display,
+    c.core_icon_urls, c.core_size, pt.primary_trait
 HAVING COUNT(*) >= 3
 ORDER BY top4_rate DESC

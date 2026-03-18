@@ -1,4 +1,3 @@
--- =============================================================================
 -- gold_item_winrate.sql
 -- Taxa de top4 e vitória por item por unidade
 -- Permite responder: qual item em qual unit tem maior winrate?
@@ -47,6 +46,11 @@ SELECT
     tft_set_number,
     item_name,
     REGEXP_REPLACE(item_name, r'^(?i)tft\d+_item_|^(?i)tft\d+_', '')             AS item_display_name,
+    CONCAT(
+        'https://storage.googleapis.com/tft-assets-tft-gcp-integration/items/',
+        LOWER(item_name),
+        '.png'
+    )                                                                               AS item_icon_url,
     character_id,
     REGEXP_REPLACE(character_id, r'^(?i)tft\d+_', '')                              AS character_name,
 
@@ -61,7 +65,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                                 AS performance_tier
+    END                                                 AS tier_winrate
 
 FROM deduped
 GROUP BY tft_set_number, item_name, character_id

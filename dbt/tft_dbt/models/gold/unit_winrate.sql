@@ -32,9 +32,9 @@ SELECT
     character_id,
     REGEXP_REPLACE(character_id, r'^(?i)tft\d+_', '')                              AS character_name,
     CONCAT(
-        'https://raw.communitydragon.org/latest/game/assets/ux/tft/championsplashes/',
-        LOWER(REGEXP_REPLACE(character_id, r'^(?i)tft\d+_', 'tft16_')),
-        '_square.png'
+        'https://storage.googleapis.com/tft-assets-tft-gcp-integration/champions/',
+        LOWER(character_id),
+        '.png'
     )                                                                               AS icon_url,
     tier,
     rarity,
@@ -50,7 +50,7 @@ SELECT
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 55 THEN 'A'
         WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 35 THEN 'B'
         ELSE 'C'
-    END                                                 AS performance_tier
+    END                                                 AS tier_winrate
 
 FROM deduped
 GROUP BY tft_set_number, character_id, tier, rarity
