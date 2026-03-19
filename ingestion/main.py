@@ -13,7 +13,7 @@ import gcs_client
 import pubsub_client
 from firestore_client import STATUS_ABANDONED
 
-# Cloud Run captura stdout/stderr — força o logging para stdout com flush
+# Cloud Run captura stdout/stderr — força logging para stdout
 logging.basicConfig(
     level=logging.INFO,
     stream=sys.stdout,
@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ─── CONFIG ──────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 
 PROJECT_ID    = os.environ["PROJECT_ID"]
 RIOT_API_KEY  = os.environ["RIOT_API_KEY"]
@@ -31,18 +31,19 @@ MASS_REGION   = os.environ.get("MASS_REGION", "americas")
 BRONZE_BUCKET = os.environ["BRONZE_BUCKET"]
 PUBSUB_TOPIC  = os.environ.get("PUBSUB_TOPIC", "tft-match-ids")
 
-MATCH_COUNT = int(os.environ.get("MATCH_COUNT", "20"))
-HOURS_BACK  = int(os.environ.get("HOURS_BACK", "24"))
+MATCH_COUNT     = int(os.environ.get("MATCH_COUNT", "20"))
+HOURS_BACK      = int(os.environ.get("HOURS_BACK", "24"))
+MAX_DLQ_ATTEMPTS = int(os.environ.get("MAX_DLQ_ATTEMPTS", "2"))
 
-# ─── INICIALIZAÇÃO DOS CLIENTES ───────────────────────────────────────────────
+# ── Inicialização dos clientes — uma vez por instância da Cloud Function ──────
+# Cloud Functions reutiliza instâncias — inicializar aqui evita reconexão a cada chamada
 
-def _init_clients():
-    riot_client.init(RIOT_API_KEY, RIOT_REGION, MASS_REGION)
-    firestore_client.init(PROJECT_ID)
-    gcs_client.init(BRONZE_BUCKET)
-    pubsub_client.init(PROJECT_ID, PUBSUB_TOPIC)
+riot_client.init(RIOT_API_KEY, RIOT_REGION, MASS_REGION)
+firestore_client.init(PROJECT_ID)
+gcs_client.init(BRONZE_BUCKET)
+pubsub_client.init(PROJECT_ID, PUBSUB_TOPIC)
 
-# ─── CLOUD FUNCTIONS ─────────────────────────────────────────────────────────
+# ── Handlers ──────────────────────────────────────────────────────────────────
 
 @functions_framework.http
 def collector(request):
@@ -50,14 +51,14 @@ def collector(request):
     Job 1 — Collector (trigger: HTTP via Cloud Scheduler)
 
     Fluxo:
-      1. Busca PUUIDs do Challenger, Grandmaster e Master
+      1. Busca PUUIDs do Master e Diamond I
       2. Coleta match IDs (janela HOURS_BACK horas)
       3. Filtra IDs já tratados no Firestore
       4. Registra IDs novos como pending
       5. Publica em batches no Pub/Sub
+      6. Publica evento collector_finished em tft-pipeline-events
     """
     logger.info("=== Collector iniciado ===")
-    _init_clients()
 
     since_ts = int((datetime.now(timezone.utc) - timedelta(hours=HOURS_BACK)).timestamp())
     logger.info(f"Janela: últimas {HOURS_BACK}h | {MATCH_COUNT} partidas/jogador")
@@ -84,18 +85,17 @@ def collector(request):
         firestore_client.save_pending(match_id)
         new_ids.append(match_id)
 
-    logger.info(f"Novos: {len(new_ids)} | Ignorados: {skipped}")
+    logger.info(f"Novos: {len(new_ids)} | Ignorados (já processados): {skipped}")
 
     if not new_ids:
         return {"status": "ok", "published": 0, "skipped": skipped}, 200
 
     total_batches = pubsub_client.publish_all(new_ids)
 
-    # Notifica o pipeline de transformação que há dados novos para processar
     pubsub_client.publish_pipeline_event({
-        "event":      "collector_finished",
-        "new_ids":    len(new_ids),
-        "batches":    total_batches,
+        "event":        "collector_finished",
+        "new_ids":      len(new_ids),
+        "batches":      total_batches,
         "triggered_at": datetime.now(timezone.utc).isoformat(),
     })
 
@@ -114,19 +114,17 @@ def collector(request):
 @functions_framework.cloud_event
 def match_fetcher(cloud_event):
     """
-    Job 2 — Match Fetcher (trigger: Pub/Sub)
+    Job 2 — Match Fetcher (trigger: Pub/Sub tft-match-ids)
 
     Recebe um batch de match IDs e processa cada um:
-      1. Busca JSON na Riot API
-      2. Salva no GCS Bronze (1 arquivo por match)
+      1. Busca JSON completo na Riot API
+      2. Salva no GCS Bronze
       3. Atualiza status no Firestore
 
-    Erros recuperáveis: re-publica os IDs que falharam.
+    Erros recuperáveis: re-publica os IDs com falha para retry via Pub/Sub.
     Erros não recuperáveis (401/403): abandona imediatamente.
-    Após MAX_RETRIES: marca como abandoned e para.
+    Após MAX_RETRIES tentativas: marca como abandoned.
     """
-    _init_clients()
-
     batch_id  = "UNKNOWN"
     match_ids = []
 
@@ -165,8 +163,8 @@ def match_fetcher(cloud_event):
             firestore_client.save_success(match_id)
             results["success"] += 1
 
-            patch = data.get("info", {}).get("game_variation", "?")
-            logger.info(f"  ✅ {match_id} | patch: {patch}")
+            game_version = data.get("info", {}).get("game_version", "?")
+            logger.info(f"  ✅ {match_id} | version: {game_version}")
 
         except Exception as e:
             error_msg = str(e)
@@ -203,18 +201,15 @@ def dlq_reprocessor(cloud_event):
     """
     Job 3 — DLQ Reprocessor (trigger: Pub/Sub tft-match-ids-dead-letter)
 
-    Lê mensagens que falharam MAX_RETRIES vezes no match_fetcher e tenta
-    reprocessar uma última vez. Se falhar novamente, marca como abandoned
-    e loga como CRITICAL para alertas.
+    Lê mensagens que esgotaram MAX_RETRIES no match_fetcher e tenta
+    reprocessar até MAX_DLQ_ATTEMPTS vezes. Se atingir o limite, abandona.
 
     Fluxo:
       1. Recebe batch da DLQ
-      2. Reseta o contador de retries no Firestore (status → error)
-      3. Republica no tópico principal para o match_fetcher tentar novamente
-      4. Se o match_id não existir no Firestore, registra e republica mesmo assim
+      2. Para cada match_id: verifica dlq_attempts no Firestore
+      3. Se < MAX_DLQ_ATTEMPTS: reseta retries e re-enfileira no tópico principal
+      4. Se >= MAX_DLQ_ATTEMPTS: marca como abandoned definitivamente
     """
-    _init_clients()
-
     batch_id  = "UNKNOWN"
     match_ids = []
 
@@ -233,24 +228,21 @@ def dlq_reprocessor(cloud_event):
         logger.critical(f"Erro ao decodificar mensagem DLQ: {e} — descartando")
         return
 
-    MAX_DLQ_ATTEMPTS = 2  # máximo de vezes que o DLQ tenta reprocessar
-
-    requeued   = 0
-    abandoned  = 0
+    requeued  = 0
+    abandoned = 0
+    to_requeue = []
 
     for match_id in match_ids:
         doc  = firestore_client.get_match_doc(match_id).get()
         data = doc.to_dict() if doc.exists else {}
 
-        status       = data.get("status", "unknown")
-        dlq_attempts = data.get("dlq_attempts", 0)
-
-        # Se já foi processado com sucesso, ignora
-        if status == "success":
+        # Já processado com sucesso — ignorar
+        if data.get("status") == "success":
             logger.info(f"  ⏭️  {match_id} já processado com sucesso — ignorando")
             continue
 
-        # Se já atingiu o limite de tentativas do DLQ, abandona definitivamente
+        dlq_attempts = data.get("dlq_attempts", 0)
+
         if dlq_attempts >= MAX_DLQ_ATTEMPTS:
             firestore_client.get_match_doc(match_id).set({
                 "status":     "abandoned",
@@ -258,18 +250,15 @@ def dlq_reprocessor(cloud_event):
                 "last_error": f"Abandonado após {dlq_attempts} tentativas de DLQ",
             }, merge=True)
             abandoned += 1
-            logger.critical(
-                f"  ❌ {match_id} abandonado definitivamente após "
-                f"{dlq_attempts} tentativas de DLQ"
-            )
+            logger.critical(f"  ❌ {match_id} abandonado após {dlq_attempts} tentativas de DLQ")
             continue
 
         logger.warning(
-            f"  🔁 {match_id} | dlq_attempt: {dlq_attempts + 1}/{MAX_DLQ_ATTEMPTS} "
+            f"  🔁 {match_id} | dlq_attempt {dlq_attempts + 1}/{MAX_DLQ_ATTEMPTS} "
             f"| last_error: {data.get('last_error', 'N/A')[:100]}"
         )
 
-        # Reseta retries e incrementa dlq_attempts
+        # Reseta retries e incrementa dlq_attempts — uma única escrita
         firestore_client.get_match_doc(match_id).set({
             "match_id":     match_id,
             "status":       "error",
@@ -279,15 +268,11 @@ def dlq_reprocessor(cloud_event):
             "updated_at":   datetime.now(timezone.utc).isoformat(),
         }, merge=True)
 
+        to_requeue.append(match_id)
         requeued += 1
 
-    if requeued > 0:
-        requeue_ids = [
-            mid for mid in match_ids
-            if not (firestore_client.get_match_doc(mid).get().exists
-                    and firestore_client.get_match_doc(mid).get().to_dict().get("status") == "success")
-        ]
-        pubsub_client.publish_batch(requeue_ids, batch_num=0)
+    if to_requeue:
+        pubsub_client.publish_batch(to_requeue, batch_num=0)
         logger.warning(f"  🔁 {requeued} IDs recolocados na fila principal")
 
     logger.warning(
