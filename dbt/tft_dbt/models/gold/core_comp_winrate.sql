@@ -111,9 +111,9 @@ SELECT
 
     CASE
         WHEN COUNT(*) < 15                                       THEN 'N/A'
-        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 80      THEN 'S'
-        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 70      THEN 'A'
-        WHEN ROUND(COUNTIF(top4) / COUNT(*) * 100, 2) >= 50      THEN 'B'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 80      THEN 'S'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 70      THEN 'A'
+        WHEN ROUND(COUNTIF(c.top4) / COUNT(*) * 100, 2) >= 50      THEN 'B'
         ELSE 'C'
     END                                             AS tier_winrate
 
