@@ -1,17 +1,6 @@
 version: 2
 
 models:
-  - name: dim_matches
-    description: "Dimensão de partidas — fatos da partida sem dados de jogadores"
-    columns:
-      - name: match_id
-        tests: [not_null, unique]
-      - name: game_datetime
-        tests: [not_null]
-      - name: tft_set_number
-        tests: [not_null]
-      - name: queue_id
-
   - name: fact_player_results
     description: "Uma linha por jogador por partida — resultado e arrays raw"
     columns:
@@ -26,7 +15,7 @@ models:
         tests: [not_null]
       - name: level
 
-  - name: dim_traits
+  - name: fact_traits
     description: "Uma linha por trait por jogador por partida"
     columns:
       - name: match_id
@@ -38,7 +27,7 @@ models:
       - name: tier_current
         tests: [not_null]
 
-  - name: dim_units
+  - name: fact_units
     description: "Uma linha por unidade por jogador por partida"
     columns:
       - name: match_id

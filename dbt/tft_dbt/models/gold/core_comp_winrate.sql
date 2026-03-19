@@ -15,6 +15,7 @@
 WITH units_ranked AS (
     SELECT
         match_id,
+        patch,
         puuid,
         tft_set_number,
         placement,
@@ -26,12 +27,13 @@ WITH units_ranked AS (
             PARTITION BY match_id, puuid
             ORDER BY rarity DESC, character_id ASC
         ) AS unit_rank
-    FROM {{ ref('dim_units') }}
+    FROM {{ ref('fact_units') }}
 ),
 
 core_units AS (
     SELECT
         match_id,
+        patch,
         puuid,
         tft_set_number,
         placement,
@@ -54,7 +56,7 @@ core_units AS (
         )                                                        AS core_icon_urls,
         COUNT(DISTINCT character_id)                             AS core_size
     FROM units_ranked
-    GROUP BY match_id, puuid, tft_set_number, placement, top4, win
+    GROUP BY match_id, patch, puuid, tft_set_number, placement, top4, win
 ),
 
 primary_trait AS (
@@ -62,7 +64,7 @@ primary_trait AS (
         match_id,
         puuid,
         trait_name AS primary_trait
-    FROM {{ ref('dim_traits') }}
+    FROM {{ ref('fact_traits') }}
     WHERE is_active = TRUE
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY match_id, puuid
@@ -72,6 +74,7 @@ primary_trait AS (
 
 SELECT
     c.tft_set_number,
+    c.patch,
     c.core_key,
     c.core_key_display,
     c.core_icon_urls,
@@ -117,7 +120,7 @@ FROM core_units                 c
 LEFT JOIN primary_trait         pt ON c.match_id = pt.match_id
                                    AND c.puuid   = pt.puuid
 GROUP BY
-    c.tft_set_number, c.core_key, c.core_key_display,
+    c.tft_set_number, c.patch, c.core_key, c.core_key_display,
     c.core_icon_urls, c.core_size, pt.primary_trait
 HAVING COUNT(*) >= 3
 ORDER BY top4_rate DESC

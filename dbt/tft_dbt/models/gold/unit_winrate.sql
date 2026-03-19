@@ -16,6 +16,7 @@
 WITH deduped AS (
     SELECT DISTINCT
         match_id,
+        patch,
         puuid,
         tft_set_number,
         character_id,
@@ -24,11 +25,12 @@ WITH deduped AS (
         placement,
         top4,
         win
-    FROM {{ ref('dim_units') }}
+    FROM {{ ref('fact_units') }}
 )
 
 SELECT
     tft_set_number,
+    patch,
     character_id,
     REGEXP_REPLACE(character_id, r'^(?i)tft\d+_', '')                              AS character_name,
     CONCAT(
@@ -53,6 +55,6 @@ SELECT
     END                                                 AS tier_winrate
 
 FROM deduped
-GROUP BY tft_set_number, character_id, tier, rarity
+GROUP BY tft_set_number, patch, character_id, tier, rarity
 HAVING COUNT(*) >= 10
 ORDER BY top4_rate DESC

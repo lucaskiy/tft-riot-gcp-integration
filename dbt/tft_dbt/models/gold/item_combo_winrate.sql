@@ -15,6 +15,7 @@
 WITH items_exploded AS (
     SELECT
         match_id,
+        patch,
         puuid,
         character_id,
         tft_set_number,
@@ -23,7 +24,7 @@ WITH items_exploded AS (
         win,
         item_count,
         item
-    FROM {{ ref('dim_units') }},
+    FROM {{ ref('fact_units') }},
     UNNEST(JSON_VALUE_ARRAY(item_names_json)) AS item
     WHERE item_names_json IS NOT NULL
       AND item_count >= 2
@@ -32,6 +33,7 @@ WITH items_exploded AS (
 combo_per_unit AS (
     SELECT
         match_id,
+        patch,
         puuid,
         character_id,
         tft_set_number,
@@ -50,12 +52,13 @@ combo_per_unit AS (
             ' | ' ORDER BY item
         )                                                   AS item_icon_urls
     FROM items_exploded
-    GROUP BY match_id, puuid, character_id, tft_set_number,
+    GROUP BY match_id, patch, puuid, character_id, tft_set_number,
              placement, top4, win, item_count
 )
 
 SELECT
     tft_set_number,
+    patch,
 
     -- Identificação da unidade
     character_id,
@@ -98,6 +101,6 @@ SELECT
     END                                                                             AS tier_winrate
 
 FROM combo_per_unit
-GROUP BY tft_set_number, character_id, item_combo, item_combo_size, item_icon_urls
+GROUP BY tft_set_number, patch, character_id, item_combo, item_combo_size, item_icon_urls
 HAVING COUNT(*) >= 5
 ORDER BY character_id, top4_rate DESC
