@@ -1,20 +1,22 @@
 #!/bin/bash
+# =============================================================================
+# create_external_table.sh — External Table BigQuery apontando para o GCS Bronze
+# Executa após a primeira ingestão de dados
+# =============================================================================
 set -e
-
-export PROJECT_ID="tft-gcp-integration"
-export BQ_LOCATION="US"
+source "$(dirname "$0")/env.sh"
 
 echo "Criando External Table tft_bronze.raw_matches..."
 
 if bq show --project_id=$PROJECT_ID tft_bronze.raw_matches &>/dev/null; then
-    echo "⚠️  External Table já existe, deletando para recriar..."
+    echo "⚠️  External Table já existe — recriando..."
     bq rm -f --project_id=$PROJECT_ID tft_bronze.raw_matches
 fi
 
 cat > /tmp/external_table_def.json << EOJSON
 {
   "sourceFormat": "NEWLINE_DELIMITED_JSON",
-  "sourceUris": ["gs://tft-bronze-${PROJECT_ID}/*.json"],
+  "sourceUris": ["gs://${BUCKET_BRONZE}/*.json"],
   "schema": {
     "fields": [
       {"name": "metadata", "type": "JSON", "mode": "NULLABLE"},
@@ -23,7 +25,7 @@ cat > /tmp/external_table_def.json << EOJSON
   },
   "hivePartitioningOptions": {
     "mode": "CUSTOM",
-    "sourceUriPrefix": "gs://tft-bronze-${PROJECT_ID}/{date:DATE}",
+    "sourceUriPrefix": "gs://${BUCKET_BRONZE}/{date:DATE}",
     "requirePartitionFilter": false
   }
 }
@@ -37,8 +39,7 @@ bq mk \
 
 echo "✅ External Table criada: tft_bronze.raw_matches"
 echo ""
-echo "Testando..."
-bq query \
-    --project_id=$PROJECT_ID \
-    --use_legacy_sql=false \
-    "SELECT date, COUNT(*) as total FROM \`${PROJECT_ID}.tft_bronze.raw_matches\` GROUP BY date ORDER BY date DESC LIMIT 10"
+bq query --project_id=$PROJECT_ID --use_legacy_sql=false \
+    "SELECT date, COUNT(*) AS total
+     FROM \`${PROJECT_ID}.tft_bronze.raw_matches\`
+     GROUP BY date ORDER BY date DESC LIMIT 5"

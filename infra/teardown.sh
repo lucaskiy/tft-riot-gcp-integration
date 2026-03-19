@@ -1,44 +1,45 @@
 #!/bin/bash
 # =============================================================================
-# teardown.sh — Remove TODOS os recursos criados (cuidado!)
-# Útil para resetar o ambiente ou controlar custos na learner account
-# Execução: bash infra/gcloud/teardown.sh
+# create_external_table.sh — External Table BigQuery apontando para o GCS Bronze
+# Executa após a primeira ingestão de dados
 # =============================================================================
+set -e
+source "$(dirname "$0")/env.sh"
 
-export PROJECT_ID="tft-gcp-integration"
-export REGION="us-central1"
+echo "Criando External Table tft_bronze.raw_matches..."
 
-echo "⚠️  ATENÇÃO: Isso irá deletar TODOS os recursos do projeto $PROJECT_ID"
-read -p "Digite o PROJECT_ID para confirmar: " confirm
-if [[ "$confirm" != "$PROJECT_ID" ]]; then
-  echo "Abortado."
-  exit 0
+if bq show --project_id=$PROJECT_ID tft_bronze.raw_matches &>/dev/null; then
+    echo "⚠️  External Table já existe — recriando..."
+    bq rm -f --project_id=$PROJECT_ID tft_bronze.raw_matches
 fi
 
-echo "Deletando Cloud Scheduler..."
-gcloud scheduler jobs delete tft-collector-hourly --location=$REGION --quiet
+cat > /tmp/external_table_def.json << EOJSON
+{
+  "sourceFormat": "NEWLINE_DELIMITED_JSON",
+  "sourceUris": ["gs://${BUCKET_BRONZE}/*.json"],
+  "schema": {
+    "fields": [
+      {"name": "metadata", "type": "JSON", "mode": "NULLABLE"},
+      {"name": "info",     "type": "JSON", "mode": "NULLABLE"}
+    ]
+  },
+  "hivePartitioningOptions": {
+    "mode": "CUSTOM",
+    "sourceUriPrefix": "gs://${BUCKET_BRONZE}/{date:DATE}",
+    "requirePartitionFilter": false
+  }
+}
+EOJSON
 
-echo "Deletando Cloud Functions..."
-gcloud functions delete tft-collector      --region=$REGION --gen2 --quiet
-gcloud functions delete tft-match-fetcher  --region=$REGION --gen2 --quiet
+bq mk \
+    --project_id=$PROJECT_ID \
+    --location=$BQ_LOCATION \
+    --external_table_definition=/tmp/external_table_def.json \
+    tft_bronze.raw_matches
 
-echo "Deletando Pub/Sub..."
-gcloud pubsub subscriptions delete tft-match-fetcher-sub --quiet
-gcloud pubsub topics delete tft-match-ids --quiet
-gcloud pubsub topics delete tft-match-ids-dead-letter --quiet
-
-echo "Deletando BigQuery..."
-bq rm -r -f $PROJECT_ID:tft_bronze
-bq rm -r -f $PROJECT_ID:tft_silver
-bq rm -r -f $PROJECT_ID:tft_gold
-bq rm -r -f $PROJECT_ID:tft_quality
-
-echo "Deletando GCS..."
-gcloud storage rm -r gs://tft-bronze-$PROJECT_ID
-gcloud storage rm -r gs://tft-control-$PROJECT_ID
-
-echo "Deletando Secrets..."
-gcloud secrets delete riot-api-key --quiet
-
+echo "✅ External Table criada: tft_bronze.raw_matches"
 echo ""
-echo "✅ Todos os recursos removidos."
+bq query --project_id=$PROJECT_ID --use_legacy_sql=false \
+    "SELECT date, COUNT(*) AS total
+     FROM \`${PROJECT_ID}.tft_bronze.raw_matches\`
+     GROUP BY date ORDER BY date DESC LIMIT 5"
