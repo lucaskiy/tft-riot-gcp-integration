@@ -1,7 +1,7 @@
 -- =============================================================================
--- silver_participants.sql
+-- fact_player_results.sql
 -- Uma linha por jogador por partida (8 linhas por match)
--- Explode o array participants_json
+-- Explode o array participants_json da staging
 -- =============================================================================
 
 {{
@@ -52,7 +52,7 @@ parsed AS (
         -- Top 4 flag (útil para análises de winrate)
         CAST(JSON_VALUE(p, '$.placement') AS INT64) <= 4                AS top4,
 
-        -- Arrays para explodir em outras tabelas
+        -- Arrays para explodir em fact_traits e fact_units
         JSON_QUERY(p, '$.traits')                                       AS traits_json,
         JSON_QUERY(p, '$.units')                                        AS units_json,
 
@@ -66,7 +66,7 @@ parsed AS (
 SELECT * FROM parsed
 
 {% if is_incremental() %}
-    WHERE dbt_updated_at >= (
-        SELECT MAX(dbt_updated_at) FROM {{ this }}
+    WHERE ingestion_date >= (
+        SELECT MAX(ingestion_date) FROM {{ this }}
     )
 {% endif %}
