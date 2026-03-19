@@ -1,5 +1,5 @@
 -- =============================================================================
--- dim_traits.sql
+-- fact_traits.sql
 -- Uma linha por trait por jogador por partida
 -- trait_name é a chave — ex: "TFT16_Bilgewater"
 -- =============================================================================

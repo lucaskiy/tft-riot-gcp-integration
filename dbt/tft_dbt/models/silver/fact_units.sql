@@ -1,5 +1,5 @@
 -- =============================================================================
--- silver_units.sql
+-- fact_units.sql
 -- Uma linha por unidade por jogador por partida
 -- unit_key = chave surrogada para lidar com múltiplas cópias do mesmo campeão
 -- (ex: 2x Yasuo tier 1 antes de virar 2 estrelas)
@@ -58,7 +58,7 @@ SELECT
     CAST(JSON_VALUE(u, '$.tier') AS INT64)              AS tier,
     CAST(JSON_VALUE(u, '$.rarity') AS INT64)            AS rarity,
 
-    -- Items equipados como array de strings
+    -- Items equipados como array JSON de strings
     JSON_QUERY(u, '$.itemNames')                        AS item_names_json,
 
     -- Quantidade de items
