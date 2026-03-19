@@ -2,7 +2,7 @@
 -- core_comp_winrate.sql
 -- Winrate por composição CORE — agrupa composições que compartilham o mesmo
 -- núcleo de unidades independente das unidades de suporte/flexíveis
--- core_size = 6 unidades com maior custo (mais importantes para a comp)
+-- core_size = todas as unidades da composição (até 9)
 -- =============================================================================
 
 {{
@@ -54,7 +54,6 @@ core_units AS (
         )                                                        AS core_icon_urls,
         COUNT(DISTINCT character_id)                             AS core_size
     FROM units_ranked
-    WHERE unit_rank <= 6
     GROUP BY match_id, puuid, tft_set_number, placement, top4, win
 ),
 
@@ -89,6 +88,12 @@ SELECT
         THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(4)] END                          AS unit_icon_5,
     CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 5
         THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(5)] END                          AS unit_icon_6,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 6
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(6)] END                          AS unit_icon_7,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 7
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(7)] END                          AS unit_icon_8,
+    CASE WHEN ARRAY_LENGTH(SPLIT(c.core_icon_urls, ' | ')) > 8
+        THEN SPLIT(c.core_icon_urls, ' | ')[OFFSET(8)] END                          AS unit_icon_9,
 
     c.core_size,
     pt.primary_trait,
