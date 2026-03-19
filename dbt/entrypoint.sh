@@ -4,7 +4,7 @@ set -e
 echo "================================================="
 echo " TFT dbt Runner"
 echo " $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-echo " RUN_MODE  : ${RUN_MODE:-daily}"
+echo " RUN_MODE    : ${RUN_MODE:-daily}"
 echo " FULL_REFRESH: ${FULL_REFRESH:-false}"
 echo "================================================="
 
@@ -25,60 +25,50 @@ tft_dbt:
       timeout_seconds: 300
 PROFILE
 
-# Flags opcionais
 REFRESH_FLAG=""
 if [ "${FULL_REFRESH}" = "true" ]; then
     REFRESH_FLAG="--full-refresh"
     echo "⚠️  Full refresh ativado — tabelas serão recriadas do zero"
 fi
 
-# Seleciona os modelos pelo RUN_MODE
+run_dbt() {
+    local TAG=$1
+    echo ""
+    echo ">>> dbt run — $TAG"
+    dbt run --select "$TAG" --profiles-dir ~/.dbt $REFRESH_FLAG
+
+    echo ""
+    echo ">>> dbt test — $TAG"
+    dbt test --select "$TAG" --profiles-dir ~/.dbt
+}
+
 case "${RUN_MODE:-daily}" in
 
   daily)
-    echo ""
-    echo "[1/4] Rodando Staging (tag:daily)..."
-    dbt run --select tag:staging --profiles-dir ~/.dbt $REFRESH_FLAG
-
-    echo ""
-    echo "[2/4] Rodando Silver (tag:daily)..."
-    dbt run --select tag:silver --profiles-dir ~/.dbt $REFRESH_FLAG
-    echo "      Testando Silver..."
-    dbt test --select tag:silver --profiles-dir ~/.dbt
-
-    echo ""
-    echo "[3/4] Rodando Gold (tag:daily)..."
-    # Usa + para garantir que dependências Silver estejam atualizadas antes do Gold
-    dbt run --select +tag:gold --profiles-dir ~/.dbt $REFRESH_FLAG
-    echo "      Testando Gold..."
-    dbt test --select tag:gold --profiles-dir ~/.dbt
+    run_dbt "tag:staging"
+    run_dbt "tag:silver"
+    # + garante que dependências Silver estejam atualizadas antes do Gold
+    dbt run  --select "+tag:gold" --profiles-dir ~/.dbt $REFRESH_FLAG
+    dbt test --select "tag:gold"  --profiles-dir ~/.dbt
     ;;
 
   staging)
-    echo ""
-    echo "[1/1] Rodando apenas Staging..."
-    dbt run --select tag:staging --profiles-dir ~/.dbt $REFRESH_FLAG
-    dbt test --select tag:staging --profiles-dir ~/.dbt
+    run_dbt "tag:staging"
     ;;
 
   silver)
-    echo ""
-    echo "[1/2] Rodando apenas Silver..."
-    dbt run --select tag:silver --profiles-dir ~/.dbt $REFRESH_FLAG
-    dbt test --select tag:silver --profiles-dir ~/.dbt
+    run_dbt "tag:silver"
     ;;
 
   gold)
-    echo ""
-    echo "[1/2] Rodando apenas Gold..."
-    dbt run --select tag:gold --profiles-dir ~/.dbt $REFRESH_FLAG
-    dbt test --select tag:gold --profiles-dir ~/.dbt
+    dbt run  --select "+tag:gold" --profiles-dir ~/.dbt $REFRESH_FLAG
+    dbt test --select "tag:gold"  --profiles-dir ~/.dbt
     ;;
 
   full)
     echo ""
-    echo "[1/4] Rodando todos os modelos..."
-    dbt run --profiles-dir ~/.dbt $REFRESH_FLAG
+    echo ">>> dbt run — todos os modelos"
+    dbt run  --profiles-dir ~/.dbt $REFRESH_FLAG
     dbt test --profiles-dir ~/.dbt
     ;;
 
@@ -90,7 +80,7 @@ case "${RUN_MODE:-daily}" in
 esac
 
 echo ""
-echo "[4/4] Gerando documentação..."
+echo ">>> dbt docs generate"
 dbt docs generate --profiles-dir ~/.dbt
 
 echo ""
