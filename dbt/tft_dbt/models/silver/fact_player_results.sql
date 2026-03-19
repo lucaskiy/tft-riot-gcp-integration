@@ -20,6 +20,7 @@ WITH exploded AS (
         game_datetime,
         tft_set_number,
         ingestion_date,
+        REGEXP_EXTRACT(game_version, r'16\.\d+\.\d+') AS patch,
         p
     FROM {{ ref('stg_matches') }},
     UNNEST(JSON_QUERY_ARRAY(participants_json)) AS p
@@ -31,6 +32,7 @@ parsed AS (
         game_datetime,
         tft_set_number,
         ingestion_date,
+        patch,
 
         -- Identificação do jogador
         JSON_VALUE(p, '$.puuid')                                        AS puuid,

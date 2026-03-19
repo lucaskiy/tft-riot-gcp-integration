@@ -21,6 +21,7 @@ WITH traits_exploded AS (
         tft_set_number,
         placement,
         top4,
+        patch,
         win,
         ingestion_date,
         t
@@ -30,6 +31,7 @@ WITH traits_exploded AS (
 
 SELECT
     match_id,
+    patch,
     puuid,
     game_datetime,
     tft_set_number,

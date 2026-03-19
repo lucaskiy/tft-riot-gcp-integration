@@ -24,6 +24,7 @@ WITH units_exploded AS (
         top4,
         win,
         ingestion_date,
+        patch,
         u
     FROM {{ ref('fact_player_results') }},
     UNNEST(JSON_QUERY_ARRAY(units_json)) AS u
@@ -44,6 +45,7 @@ SELECT
     CONCAT(match_id, '_', puuid, '_', CAST(unit_position AS STRING)) AS unit_key,
 
     match_id,
+    patch,
     puuid,
     game_datetime,
     tft_set_number,
