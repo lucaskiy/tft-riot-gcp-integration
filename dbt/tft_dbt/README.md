@@ -34,6 +34,8 @@ dbt/
 
 ## Lineage
 
+![Lineage Graph](lineage.png)
+
 ```
 tft_bronze.raw_matches (External Table — GCS)
     └── stg_matches (view)
