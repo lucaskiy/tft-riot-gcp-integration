@@ -1,17 +1,19 @@
 version: 2
 
 models:
-  - name: player_match_obt
+  - name: core_comp_winrate
     description: >
-      One Big Table — base principal para o Looker Studio.
-      Uma linha por jogador por partida com arrays de units e traits.
+      Estatísticas de taxa de top4 e vitória para as composições centrais (core comps) de cada unidade, considerando traits primárias e secundárias.
     columns:
-      - name: match_id
+      - name: core_key
         tests: [not_null]
-      - name: puuid
+      - name: core_key_display
         tests: [not_null]
-      - name: placement
-      - name: top4
+      - name: primary_trait
+        tests: [not_null]
+      - name: top4_rate
+        tests: [not_null]
+      - name: win_rate
         tests: [not_null]
 
   - name: unit_winrate
@@ -24,56 +26,14 @@ models:
       - name: win_rate
         tests: [not_null]
 
-  - name: trait_winrate
-    description: "Taxa de top4 e vitória por trait ativo e tier"
+  - name: item_combo_winrate
+    description: "Taxa de top4 e vitória por combinação de itens e tier"
     columns:
-      - name: trait_name
-        tests: [not_null]
-      - name: top4_rate
-        tests: [not_null]
-
-  - name: item_winrate
-    description: "Taxa de top4 e vitória por item por unidade"
-    columns:
-      - name: item_name
-        tests: [not_null]
       - name: character_id
         tests: [not_null]
-      - name: top4_rate
-        tests: [not_null]
-
-  - name: comp_winrate
-    description: >
-      Taxa de top4 e vitória por composição de units + traits ativas.
-      units_key = character_ids ordenados alfabeticamente.
-      traits_key = traits ativas ordenadas por num_units desc.
-    columns:
-      - name: units_key
-        tests: [not_null]
-      - name: traits_key
-        tests: [not_null]
-      - name: comp_full_key
-        tests: [not_null]
-      - name: top4_rate
-        tests: [not_null]
-
-  - name: trait_comp_winrate
-    description: "Winrate por combinação de traits ativas — permite analisar quais sinergias de traits têm melhor desempenho"
-    columns:
-      - name: tft_set_number
-        tests: [not_null]
-      - name: trait_comp_key
-        description: "Combinação completa de traits ativas ex: '4 Colosso | 5 Ionia | 2 Brutamontes'"
-        tests: [not_null]
-      - name: dominant_traits_key
-        description: "Apenas traits com num_units >= 4"
-      - name: active_trait_count
-        tests: [not_null]
-      - name: total_games
+      - name: item_combo
         tests: [not_null]
       - name: top4_rate
         tests: [not_null]
       - name: win_rate
-        tests: [not_null]
-      - name: avg_placement
         tests: [not_null]
